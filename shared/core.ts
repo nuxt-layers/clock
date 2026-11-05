@@ -71,13 +71,13 @@ export function toZone(value: Instant, timeZone: string): ZonedDateTime {
   parse('instant', value)
   const validatedZone = zone(timeZone)
   try {
-    return Temporal.Instant.from(value).toZonedDateTimeISO(validatedZone).toString()
+    return parse('zonedDateTime', Temporal.Instant.from(value).toZonedDateTimeISO(validatedZone).toString()).value
   } catch { return fail('CLOCK_INVALID_INPUT') }
 }
 export function toInstant(value: ZonedDateTime): Instant {
   parse('zonedDateTime', value)
   try {
-    return Temporal.ZonedDateTime.from(value).toInstant().toString()
+    return parse('instant', Temporal.ZonedDateTime.from(value).toInstant().toString()).value
   } catch { return fail('CLOCK_INVALID_INPUT') }
 }
 export function resolveLocal(local: LocalDateTime, timeZone: string, disambiguation: Disambiguation = 'reject'): ZonedDateTime {
@@ -93,7 +93,7 @@ export function resolveLocal(local: LocalDateTime, timeZone: string, disambiguat
       if (!early.toPlainDateTime().equals(dt) || !late.toPlainDateTime().equals(dt)) return fail('CLOCK_NONEXISTENT_LOCAL_TIME')
       if (early.epochNanoseconds !== late.epochNanoseconds) return fail('CLOCK_AMBIGUOUS_LOCAL_TIME')
     }
-    return Temporal.ZonedDateTime.from(fields, { disambiguation }).toString()
+    return parse('zonedDateTime', Temporal.ZonedDateTime.from(fields, { disambiguation }).toString()).value
   } catch (e) {
     if (e instanceof ClockError) throw e
     return fail('CLOCK_INVALID_INPUT')
