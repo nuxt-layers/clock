@@ -64,8 +64,8 @@ The planned Nuxt host composition must fit ADR-0012's 50-line budget, including 
 
 ## Implementation checks still required
 
-1. Prove the chosen core export map and request-scoped injected clock in minimal Nuxt/Nitro hosts.
-2. Determine the browser/runtime compatibility matrix and choose a Temporal implementation or fallback.
+1. Prove the source core export map and request-scoped injected clock in minimal Nuxt/Nitro hosts.
+2. Verify the runtime compatibility matrix for the initial `@js-temporal/polyfill` implementation and any native Temporal transition.
 3. Validate time-zone data assumptions and cross-environment precision in contract tests.
 
 These are implementation gates, not reasons to expand the architecture-rules repository.
