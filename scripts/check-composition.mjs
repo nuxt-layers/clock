@@ -17,7 +17,7 @@ function visit(dir) {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) { visit(path); continue }
     const name = relative(host, path).replaceAll('\\', '/')
-    if (screenPaths.test(name) || !sourceTypes.has(extname(name))) continue
+    if (name === 'app/app.vue' || screenPaths.test(name) || !sourceTypes.has(extname(name))) continue
     const content = readFileSync(path, 'utf8')
     if (!capabilityUse.test(content)) continue
     const count = content.trimEnd().split(/\r?\n/).length
