@@ -15,10 +15,9 @@ jobs:
       - name: Check out candidate source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020e
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 26.13.0
-          package-manager-cache: false
       - name: Install Clock from its lockfile
         run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm install --frozen-lockfile
       - name: Test Clock core
@@ -41,15 +40,14 @@ jobs:
     needs: source-and-local-host
     runs-on: ubuntu-latest
     env:
-      HOST_DIR: ${{ runner.temp }}/clock-upstream-host
+      HOST_DIR: /tmp/clock-upstream-host
     steps:
       - name: Check out accepted master
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020e
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 26.13.0
-          package-manager-cache: false
       - name: Prepare isolated independent consumer
         shell: bash
         run: |
