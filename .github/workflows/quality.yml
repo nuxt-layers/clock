@@ -1,0 +1,81 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-local-host:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020e
+        with:
+          node-version: 26.13.0
+          package-manager-cache: false
+      - name: Install Clock from its lockfile
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm install --frozen-lockfile
+      - name: Test Clock core
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm test
+      - name: Typecheck Clock core
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm typecheck
+      - name: Enforce host composition budget
+        run: node scripts/check-composition.mjs
+      - name: Install local minimal host from its lockfile
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host install --frozen-lockfile
+      - name: Test Nuxt SSR and Nitro
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host test
+      - name: Build minimal host
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host build
+      - name: Typecheck minimal host
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host typecheck
+
+  upstream-consumer:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: source-and-local-host
+    runs-on: ubuntu-latest
+    env:
+      HOST_DIR: ${{ runner.temp }}/clock-upstream-host
+    steps:
+      - name: Check out accepted master
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020e
+        with:
+          node-version: 26.13.0
+          package-manager-cache: false
+      - name: Prepare isolated independent consumer
+        shell: bash
+        run: |
+          mkdir -p "$HOST_DIR"
+          git archive HEAD:examples/minimal-host | tar -x -C "$HOST_DIR"
+          node -e '
+            const fs = require("node:fs")
+            const file = process.env.HOST_DIR + "/package.json"
+            const manifest = JSON.parse(fs.readFileSync(file, "utf8"))
+            manifest.dependencies["@nuxt-layers/clock"] = "github:nuxt-layers/clock#master"
+            manifest.packageManager = "pnpm@12.16.1"
+            fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n")
+          '
+          rm "$HOST_DIR/pnpm-lock.yaml"
+      - name: Resolve latest accepted Git-backed Clock
+        working-directory: ${{ env.HOST_DIR }}
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm install --no-frozen-lockfile
+      - name: Verify independent consumer frozen install
+        working-directory: ${{ env.HOST_DIR }}
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm install --frozen-lockfile
+      - name: Test independent SSR and Nitro consumption
+        working-directory: ${{ env.HOST_DIR }}
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm test
+      - name: Build independent consumer
+        working-directory: ${{ env.HOST_DIR }}
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm build
+      - name: Typecheck independent consumer
+        working-directory: ${{ env.HOST_DIR }}
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm typecheck
