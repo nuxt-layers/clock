@@ -6,7 +6,7 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "typecheck": "nuxt typecheck",
-    "test": "vitest run"
+    "test": "nuxt prepare && vitest run"
   },
   "dependencies": {
     "@nuxt-layers/clock": "file:../..",
