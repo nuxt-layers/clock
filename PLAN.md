@@ -12,5 +12,4 @@
 | Reconcile documentation | In review | Final acceptance and current development consumption reflected in contract and README |
 | Add explicit pattern parsing/formatting | Design proposed | Finalise token rules, two-digit-year policy, error contract and strict round-trip tests; implement in a separate PR |
 | Host-supplied presentation preferences | Contract proposed | Mock resolved Configuration settings in Clock consumer tests; Configuration owns declaration, precedence and storage |
-
 | Update ecosystem catalogue | Planned | Replace candidate `clock-service` with a one-line Foundation `clock` entry in a separate architecture-rules PR |
