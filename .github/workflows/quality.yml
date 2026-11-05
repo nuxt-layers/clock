@@ -61,7 +61,7 @@ jobs:
             const manifest = JSON.parse(fs.readFileSync(file, "utf8"))
             manifest.dependencies["@nuxt-layers/clock"] = "github:nuxt-layers/clock#master"
             manifest.packageManager = "pnpm@12.16.1"
-            fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\\n")
+            fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n")
           '
           rm "$HOST_DIR/pnpm-lock.yaml"
       - name: Resolve latest accepted Git-backed Clock
