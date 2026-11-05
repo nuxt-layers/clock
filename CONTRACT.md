@@ -35,6 +35,45 @@ A caller may override locale, time zone and hour cycle per clock instance or for
 
 The host resolves user preferences, when available, and passes them as explicit overrides. The layer never looks up identity, profile or tenant records. Browser time-zone detection must be an explicit opt-in at the presentation boundary; it cannot silently change SSR output.
 
+### Proposed configuration-supplied presentation preferences (not implemented)
+
+**Boundary:** Configuration owns the selected preferences; Clock owns their interpretation and validation. Clock does **not** query Configuration, depend on IAM, or persist values. The composition host reads effective settings and passes them explicitly into Clock or its presentation boundary. Clock remains usable without Configuration, with its existing `en-GB`, `UTC` and `h23` defaults.
+
+Proposed effective preference values for the host/Clock boundary:
+
+```ts
+type ClockPresentationPreferences = {
+  locale: string             // BCP 47, e.g. en-GB
+  timeZone: string           // IANA identifier, e.g. Europe/London
+  hourCycle: 'h11' | 'h12' | 'h23' | 'h24'
+  datePattern: string        // e.g. dd/MM/yyyy
+  timePattern: string        // e.g. HH:mm:ss
+  dateTimePattern: string    // e.g. dd/MM/yyyy HH:mm:ss
+}
+```
+
+Proposed Configuration keys are `clock.locale`, `clock.time-zone`, `clock.hour-cycle`, `clock.date-pattern`, `clock.time-pattern`, `clock.date-time-pattern`. They are proposals for host-declared settings, **not** existing built-in Configuration keys. Defaults: `en-GB`, `UTC`, `h23`, `dd/MM/yyyy`, `HH:mm:ss`, `dd/MM/yyyy HH:mm:ss` respectively. An application without Configuration may supply the same values directly. Patterns control display or explicitly patterned input only: never canonical persistence formats.
+
+The **host**, not Clock, resolves scope, precedence, account permissions and SSR visibility. It should obtain effective values server-side, pass only viewer-authorised presentation values to the browser, and use the same resolved values for the initial SSR render and hydration. Never put another account's preferences into shared or public runtime configuration. Host tests should mock the six resolved values, a missing/invalid preference and scoped overrides; no Configuration installation is needed in Clock's minimal host.
+
+### Proposed explicit pattern API (not implemented)
+
+The existing `parse(kind, input)` and `format(value, options?)` remain unchanged. Future operations:
+
+```ts
+formatPattern(value: Value, pattern: string): string
+parsePattern(
+  kind: 'date' | 'time' | 'localDateTime',
+  input: string,
+  pattern: string,
+  options?: { century?: number },
+): Value
+```
+
+Initial token grammar is case-sensitive: `yyyy` (four-digit year), `yy` (two digits, requiring an explicit `century` such as `2000`), `MM` (month), `dd` (day), `HH` (24-hour clock), `mm` (minutes), `ss` (seconds), and `S`/`SS`/`SSS` (one/two/three fractional-second digits). Numeric fields have exact widths. Separators such as `/`, `-`, `:`, spaces and `T` are literal; alphabetic literal text must be single-quoted, with `''` denoting an escaped quote. Unsupported, repeated, contradictory or incomplete token sets are invalid. Date requires year/month/day; time requires hour/minute/second; localDateTime requires both. No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding/current-year pivot.
+
+A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with proposed new `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These are **proposed**, not yet part of the implemented `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns must round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing; use explicit canonical parsing and zone conversion.
+
 ## Host passes
 
 Nothing is required. The default clock uses the system clock.
