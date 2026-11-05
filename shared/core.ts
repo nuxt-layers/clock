@@ -155,6 +155,7 @@ export function compare(a: Value, b: Value): -1 | 0 | 1 {
 }
 export function format(value: Value, options: DisplayOptions = {}): string {
   checked(value)
+  if (!options || typeof options !== 'object') return fail('CLOCK_INVALID_CONFIG')
   const opts: Intl.DateTimeFormatOptions = { hourCycle: options.hourCycle ?? 'h23' }
   if (options.dateStyle) opts.dateStyle = options.dateStyle
   if (options.timeStyle) opts.timeStyle = options.timeStyle
@@ -178,6 +179,7 @@ export function format(value: Value, options: DisplayOptions = {}): string {
   } catch { return fail('CLOCK_INVALID_CONFIG') }
 }
 export function createClock(settings: ClockSettings = {}, provider: ClockPort = { now: () => new Date().toISOString() }) {
+  if (!settings || typeof settings !== 'object') return fail('CLOCK_INVALID_CONFIG')
   const timeZone = zone(settings.timeZone ?? 'UTC')
   const locale = settings.locale ?? 'en-GB'
   const hourCycle = settings.hourCycle ?? 'h23'
