@@ -2,6 +2,16 @@
 
 > **In short:** a dependency-free, headless Foundation capability offering consistent, explicit temporal semantics across Nuxt applications, Nitro and browsers.
 
+## Planned pattern and preference integration (not implemented)
+
+- Add explicit `formatPattern(value, pattern)` and `parsePattern(kind, input, pattern, options?)` without changing existing locale formatting or canonical parsing.
+- Accept strict numeric token patterns for `date`, `time` and `localDateTime`; reject unknown/ambiguous tokens, invalid values and missing components. Require a fixed `century` for `yy`; never infer an offset, zone or account preference.
+- Clock remains the sole validator/interpreter of pattern syntax. Lossless patterns round-trip; truncated or omitted fields are presentation-only.
+- Configuration (when installed) owns selectable preferences and scope/precedence, not temporal logic. Host integration reads effective Configuration values and passes a small plain-data preference object into Clock. No Clock runtime dependency on Configuration, IAM or storage.
+- Clock's minimal host mocks resolved preferences (defaults, overrides, invalid configuration and SSR consistency). Independent Configuration acceptance is owned by the Configuration repository; no live cross-layer dependency in Clock tests.
+
+This extension requires separate implementation, test and acceptance PRs; the existing accepted Clock API is unchanged.
+
 ## Purpose and classification
 
 `clock` owns application-wide date/time conventions and a replaceable clock provider, together with parsing, formatting, conversion, validation and arithmetic. This justifies **Foundation** rather than a stateless Library, although its computational core must remain pure TypeScript and reusable without Nuxt.
