@@ -42,14 +42,14 @@ Nothing is required. The default clock uses the system clock.
 For deterministic tests or trusted host integration, a host may supply the existing ADR-0012 structural clock port:
 
 ```ts
-type ClockPort = { now(): string } // UTC ISO 8601 instant; e.g. 2026-11-05T14:30:00.000Z
+type ClockPort = { now(): string } // this layer returns UTC ISO 8601, e.g. 2026-11-05T14:30:00.000Z
 ```
 
 `now()` is synchronous and returns a valid instant. It is scoped per application/server request or test invocation, never a mutable global shared across requests. This port's call shape remains `now()`; the return-value definition here is proposed for this capability and must not be presumed to constrain other existing consumers.
 
 ## Client and server functions
 
-**Proposed public entry points:** `@nuxt-layers/clock` (pure TypeScript functions), `@nuxt-layers/clock/server` (server functions) and `useClock()` (Nuxt client composable). All names and paths remain provisional until implementation.
+**Proposed public entry points:** `@nuxt-layers/clock/core` (pure, environment-neutral TypeScript functions), `@nuxt-layers/clock/server` (Nitro-safe server functions) and auto-imported `useClock()` (Nuxt composable, usable in a Nuxt app including SSR). The package root `@nuxt-layers/clock` is the Nuxt layer entry used by `extends`; it is not the portable utility entry. The same documented operation names and types apply to each context, and no consumer imports private files. These paths are part of the proposed contract and must be implemented exactly or revised before acceptance.
 
 Canonical value types are strings, not JavaScript `Date` objects:
 
@@ -69,6 +69,9 @@ type DisplayOptions = {
   timeStyle?: 'full' | 'long' | 'medium' | 'short'
 }
 type Disambiguation = 'reject' | 'earlier' | 'later' | 'compatible'
+type DateUnits = { years?: number; months?: number; weeks?: number; days?: number }
+type TimeUnits = { hours?: number; minutes?: number; seconds?: number }
+type ArithmeticOptions = { disambiguation?: Disambiguation }
 ```
 
 Proposed operations, exposed through the same semantic service on client and server:
@@ -82,12 +85,32 @@ Proposed operations, exposed through the same semantic service on client and ser
 | Zone conversion | `toZone(instant: Instant, timeZone: string): ZonedDateTime` | Preserves the instant |
 | Local resolution | `resolveLocal(local: LocalDateTime, timeZone: string, disambiguation?: Disambiguation): ZonedDateTime` | Default `reject` on DST gaps/overlaps |
 | Conversion to instant | `toInstant(zoned: ZonedDateTime): Instant` | Preserves the instant |
-| Arithmetic | `add(value: Value, amount: { years?: number; months?: number; weeks?: number; days?: number; hours?: number; minutes?: number; seconds?: number }): Value` | Calendar arithmetic for dates/zoned values; invalid unit/type combinations fail |
+| Arithmetic | `add(value: Value, amount: DateUnits | TimeUnits, options?: ArithmeticOptions): Value` | Kind-specific calendar or elapsed-time arithmetic, described below |
 | Comparison | `compare(a: Value, b: Value): -1 | 0 | 1` | Requires compatible kinds; no implicit time-zone coercion |
 | Validation | `isValid(kind: TemporalKind, input: string): boolean` | Strict validation; no coercion |
 | Serialisation | `serialise(value: Value): string` | Returns validated canonical value without localisation |
 
-Functions are pure except `now` and `today`. A date-only value is never silently interpreted as midnight UTC. Arithmetic crossing DST uses calendar semantics for zoned dates and elapsed-time semantics for instants; conversion between kinds must be explicit. Fractional seconds and precision preservation will be contract-tested before acceptance.
+Functions are pure except `now` and `today`. A date-only value is never silently interpreted as midnight UTC. Arithmetic crossing DST uses calendar semantics for zoned dates and elapsed-time semantics for instants; conversion between kinds must be explicit. Canonical strings accept 0–9 fractional-second digits; parsing preserves supplied precision, while `now()` emits milliseconds by default. Arithmetic results use at most nanosecond precision and must not silently round supplied values. Formatting is presentation-only and may reduce displayed precision.
+
+### Arithmetic rules
+
+- `date`: integer years, months, weeks or days, using calendar arithmetic; no time units.
+- `instant`: integer hours, minutes or seconds (elapsed time); no calendar units.
+- `time`: integer hours, minutes or seconds; wraps within 24 hours and retains the time kind.
+- `localDateTime`: one category per invocation: calendar units **or** elapsed time units, never both; no zone is inferred.
+- `zonedDateTime`: calendar units advance local calendar fields preserving the named zone; time units advance the exact instant. For calendar operations that land in a DST gap or overlap, `options.disambiguation` defaults to `reject`.
+- Calendar month/year overflow clamps to the last valid day (31 January + one month → 28 or 29 February). Empty, fractional or mixed-category amounts fail with `CLOCK_UNSUPPORTED_OPERATION`.
+- Subtraction uses signed integer amounts. Comparisons require the same kind, except two zoned values may compare by their instants.
+
+### Parsing and zones
+
+- ISO calendar dates use the proleptic Gregorian calendar, with four-digit years from `0001` to `9999`. Leap seconds (`:60`) are rejected.
+- An instant always has an explicit `Z`; a zoned value must contain both a numeric offset and bracketed IANA identifier, and its offset must be valid for that zone at the represented instant.
+- `compatible` follows Temporal-style resolution: choose the earlier offset for an overlap, or advance by the size of the gap for a nonexistent local time. `earlier`/`later` explicitly choose the corresponding possible instant or gap-side adjustment.
+- The implementation may rely on the host runtime's IANA time-zone data. Historical zone rules can vary between runtime versions; cross-runtime exactness requires the same zone-data revision.
+
+
+**Error contract:** failed operations throw a documented `ClockError` with stable `code` and serialisable `params` fields; `isValid()` is the exception and returns a boolean. Raw implementation errors do not cross the public API.
 
 **Error codes:** `CLOCK_INVALID_CONFIG`, `CLOCK_INVALID_INPUT`, `CLOCK_INVALID_TIME_ZONE`, `CLOCK_AMBIGUOUS_LOCAL_TIME`, `CLOCK_NONEXISTENT_LOCAL_TIME`, `CLOCK_INCOMPATIBLE_TYPES`, `CLOCK_UNSUPPORTED_OPERATION`. Public errors expose code and structured parameters, never implementation exceptions or localised wording.
 

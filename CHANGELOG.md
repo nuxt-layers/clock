@@ -4,4 +4,5 @@
 
 ## 2026-11-05
 
+- Refined the proposed public contract: precision, strict parsing, arithmetic, DST policy, error shape and export paths. No implementation exists.
 - Drafted the proposed Clock Foundation design and standalone consumer contract. No implementation or release exists.

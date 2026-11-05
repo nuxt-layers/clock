@@ -55,11 +55,17 @@ The planned Nuxt host composition must fit ADR-0012's 50-line budget, including 
 - Server-side and browser-side consumer tests using only `CONTRACT.md`.
 - No public export outside documented entry points; code and contract reconciled before acceptance.
 
-## Open design decisions
+## Interface decisions
 
-1. Final canonical precision policy for fractional seconds.
-2. Detailed `add` rules and supported combinations of temporal kinds and units.
-3. Exact implementation/export map and injectable provider wiring.
-4. Runtime compatibility matrix and Temporal fallback choice.
+- Canonical fractional seconds use 0–9 digits, preserving parsed precision. `now()` defaults to milliseconds.
+- Arithmetic uses distinct calendar versus elapsed-time units, with no mixed operation; calendar end-of-month overflow clamps and DST ambiguity rejects by default.
+- Public entry points are `/core` for portable utilities, `/server` for Nitro and `useClock()` for Nuxt; the root is the Nuxt layer entry.
+- Public failures expose a stable `ClockError` shape. `isValid` returns a boolean instead of throwing for invalid user input.
+
+## Implementation checks still required
+
+1. Prove the chosen core export map and request-scoped injected clock in minimal Nuxt/Nitro hosts.
+2. Determine the browser/runtime compatibility matrix and choose a Temporal implementation or fallback.
+3. Validate time-zone data assumptions and cross-environment precision in contract tests.
 
 These are implementation gates, not reasons to expand the architecture-rules repository.
