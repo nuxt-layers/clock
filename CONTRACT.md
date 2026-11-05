@@ -2,11 +2,11 @@
 
 > **In short:** a single typed date/time interface for Nuxt server and browser code, with explicit temporal types, time zones and deterministic testing.
 
-**Status:** Integration implementation in review. The core, Nuxt layer entry, composable, Nitro helper and minimal example exist in source. The integration and lockfile are **not yet validated**; do not accept this contract for production consumption until CI and minimal-host acceptance pass.
+**Status:** Core and Nuxt/Nitro integration locally validated on Node 26.13.0 and pnpm 12.16.1: 10 core tests, 2 minimal-host integration tests, both typechecks and minimal-host production build passed. Generated dependency lockfiles are **not yet committed**; reproducible frozen installs and CI acceptance remain outstanding.
 
 ## Install
 
-Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. **Do not treat the integration as accepted until the host checks pass.**
+Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. **Do not treat the integration as accepted until lockfiles are committed and CI checks pass.**
 
 Host Nuxt configuration (the package root is the layer entry):
 
@@ -147,7 +147,7 @@ A consuming screen must provide accessible labels for presented times, identify 
 
 ## You will hit this
 
-- **Integration unverified:** the new Nuxt/Nitro surfaces are source implementations awaiting lockfile refresh, typecheck and minimal-host acceptance. The package is private (not published); Git-backed development consumption is intended.
+- **Integration acceptance pending:** local core/SSR/Nitro tests, typechecks and production build passed, but dependency lockfiles and frozen-install CI checks remain outstanding. The package is private (not published); Git-backed development consumption is intended.
 - **Input is strict:** no guesswork for `05/11/26`, missing offsets or free-text dates.
 - **Zone identifiers:** IANA names such as `Europe/London`; never infer a zone from a UTC offset.
 - **DST:** `resolveLocal` rejects overlaps/gaps by default; callers select a documented policy.
