@@ -2,11 +2,11 @@
 
 > **In short:** a single typed date/time interface for Nuxt server and browser code, with explicit temporal types, time zones and deterministic testing.
 
-**Status:** Core and Nuxt/Nitro integration locally validated on Node 26.13.0 and pnpm 12.16.1: 10 core tests, 2 minimal-host integration tests, both typechecks and minimal-host production build passed. Generated dependency lockfiles are **not yet committed**; reproducible frozen installs and CI acceptance remain outstanding.
+**Status:** Core and Nuxt/Nitro integration locally validated on Node 26.13.0 and pnpm 12.16.1: 10 core tests, 2 minimal-host integration tests, both typechecks and minimal-host production build passed. Root and minimal-host lockfiles are committed; both frozen installs passed locally. CI and upstream-Git consumer acceptance remain outstanding.
 
 ## Install
 
-Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. **Do not treat the integration as accepted until lockfiles are committed and CI checks pass.**
+Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. **Do not treat final integration as accepted until CI and independent upstream-Git consumer checks pass.**
 
 Host Nuxt configuration (the package root is the layer entry):
 
@@ -127,7 +127,7 @@ Functions are pure except `now` and `today`. A date-only value is never silently
 - The implementation may rely on the host runtime's IANA time-zone data. Historical zone rules can vary between runtime versions; cross-runtime exactness requires the same zone-data revision.
 
 
-**Error contract:** failed operations throw a documented `ClockError` with stable `code` and serialisable `params` fields; `isValid()` is the exception and returns a boolean. Raw implementation errors do not cross the public API.
+**Error contract:** failed operations throw `ClockError` with stable `code` and serialisable `params` fields; `isValid()` returns a boolean. Provider exceptions, missing provider values and invalid provider instants map to `CLOCK_INVALID_INPUT`. Invalid settings map to `CLOCK_INVALID_CONFIG`; invalid zones map to `CLOCK_INVALID_TIME_ZONE`. The supported canonical year range also applies to generated conversion and arithmetic results. Raw implementation exceptions do not cross the public API.
 
 **Error codes:** `CLOCK_INVALID_CONFIG`, `CLOCK_INVALID_INPUT`, `CLOCK_INVALID_TIME_ZONE`, `CLOCK_AMBIGUOUS_LOCAL_TIME`, `CLOCK_NONEXISTENT_LOCAL_TIME`, `CLOCK_INCOMPATIBLE_TYPES`, `CLOCK_UNSUPPORTED_OPERATION`. Public errors expose code and structured parameters, never implementation exceptions or localised wording.
 
@@ -147,7 +147,7 @@ A consuming screen must provide accessible labels for presented times, identify 
 
 ## You will hit this
 
-- **Integration acceptance pending:** local core/SSR/Nitro tests, typechecks and production build passed, but dependency lockfiles and frozen-install CI checks remain outstanding. The package is private (not published); Git-backed development consumption is intended.
+- **Integration acceptance pending:** local core/SSR/Nitro tests, typechecks and production build passed, and both frozen installs passed locally; independent upstream-Git consumer and CI checks remain outstanding. The package is private (not published); Git-backed development consumption is intended.
 - **Input is strict:** no guesswork for `05/11/26`, missing offsets or free-text dates.
 - **Zone identifiers:** IANA names such as `Europe/London`; never infer a zone from a UTC offset.
 - **DST:** `resolveLocal` rejects overlaps/gaps by default; callers select a documented policy.

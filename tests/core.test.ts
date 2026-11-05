@@ -65,3 +65,87 @@ describe('host integration boundary', () => {
     expect(format(parse('date', '2026-11-05'), { locale: 'en-GB', dateStyle: 'short' })).toContain('05')
   })
 })
+
+
+describe('public error boundary', () => {
+  it('maps thrown provider exceptions to a stable ClockError', () => {
+    const clock = createClock({}, { now: () => { throw new Error('provider unavailable') } })
+    try {
+      clock.now()
+      throw new Error('expected failure')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ClockError)
+      expect((error as ClockError).code).toBe('CLOCK_INVALID_INPUT')
+      expect((error as ClockError).params).toEqual({})
+    }
+    expect(() => clock.today()).toThrowError('CLOCK_INVALID_INPUT')
+  })
+
+  it('rejects invalid provider output without exposing native parse errors', () => {
+    const clock = createClock({}, { now: () => 'tomorrow' })
+    expect(() => clock.now()).toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => clock.today()).toThrowError('CLOCK_INVALID_INPUT')
+  })
+
+  it('validates runtime values and settings even when TypeScript was bypassed', () => {
+    expect(() => serialise(null as unknown as Parameters<typeof serialise>[0]))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => compare(null as unknown as ReturnType<typeof parse>, parse('date', '2026-01-01')))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => createClock(null as unknown as Parameters<typeof createClock>[0]))
+      .toThrowError('CLOCK_INVALID_CONFIG')
+    expect(() => format(parse('date', '2026-01-01'), null as unknown as Parameters<typeof format>[1]))
+      .toThrowError('CLOCK_INVALID_CONFIG')
+  })
+
+  it('rejects invalid time zones and unsupported arithmetic uniformly', () => {
+    const clock = createClock({}, { now: () => '2026-01-01T00:00:00.000Z' })
+    expect(() => clock.today('Not/A_Zone')).toThrowError('CLOCK_INVALID_TIME_ZONE')
+    expect(() => add(parse('date', '2026-01-01'), {})).toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+    expect(() => add(parse('date', '2026-01-01'), { days: 0.5 })).toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+  })
+})
+
+describe('temporal boundaries', () => {
+  it('accepts four-digit calendar endpoints and rejects year rollover', () => {
+    expect(isValid('date', '0001-01-01')).toBe(true)
+    expect(isValid('date', '9999-12-31')).toBe(true)
+    expect(isValid('date', '10000-01-01')).toBe(false)
+    expect(() => add(parse('date', '9999-12-31'), { days: 1 }))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => add(parse('date', '0001-01-01'), { days: -1 }))
+      .toThrowError('CLOCK_INVALID_INPUT')
+  })
+
+  it('distinguishes the DST overlap policies', () => {
+    const local = '2026-10-25T01:30:00'
+    const early = resolveLocal(local, 'Europe/London', 'earlier')
+    const late = resolveLocal(local, 'Europe/London', 'later')
+    expect(early).toContain('+01:00[Europe/London]')
+    expect(late).toContain('+00:00[Europe/London]')
+    expect(resolveLocal(local, 'Europe/London', 'compatible')).toBe(early)
+  })
+
+  it('distinguishes the DST gap policies', () => {
+    const local = '2026-03-29T01:30:00'
+    const early = resolveLocal(local, 'Europe/London', 'earlier')
+    const late = resolveLocal(local, 'Europe/London', 'later')
+    expect(early).toContain('2026-03-29T00:30:00+00:00[Europe/London]')
+    expect(late).toContain('2026-03-29T02:30:00+01:00[Europe/London]')
+    expect(resolveLocal(local, 'Europe/London', 'compatible')).toBe(late)
+  })
+
+  it('retains nanoseconds through zone conversion and arithmetic', () => {
+    const zoned = toZone(instant, 'Europe/London')
+    expect(toInstant(zoned)).toBe(instant)
+    expect(add(parse('instant', instant), { seconds: 1 }).value)
+      .toBe('2026-11-05T14:30:01.123456789Z')
+  })
+
+  it('handles leap-year rollover and rejects missing or mixed units', () => {
+    expect(add(parse('date', '2024-02-29'), { years: 1 }).value).toBe('2025-02-28')
+    expect(() => add(parse('instant', instant), { days: 1 })).toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+    expect(() => add(parse('localDateTime', '2026-01-01T12:00:00'), { days: 1, hours: 1 }))
+      .toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+  })
+})
