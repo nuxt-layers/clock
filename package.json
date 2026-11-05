@@ -10,17 +10,24 @@
     "node": ">=26.13.0"
   },
   "exports": {
-    "./core": "./shared/core.ts"
+    ".": "./nuxt.config.ts",
+    "./core": "./shared/core.ts",
+    "./server": "./server/index.ts"
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:host": "pnpm --dir examples/minimal-host typecheck"
   },
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1"
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "nuxt": "^4.6.0"
+  },
+  "peerDependencies": {
+    "nuxt": "^4.6.0"
   }
 }
