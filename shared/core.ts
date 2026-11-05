@@ -62,15 +62,23 @@ export function parse(kind: TemporalKind, input: string): Value {
 export function isValid(kind: TemporalKind, input: string): boolean {
   try { parse(kind, input); return true } catch { return false }
 }
-const checked = (v: Value) => parse(v.kind, v.value)
+const checked = (v: Value): Value => {
+  if (!v || typeof v !== 'object') return fail('CLOCK_INVALID_INPUT')
+  return parse(v.kind, v.value)
+}
 export const serialise = (v: Value): string => checked(v).value
 export function toZone(value: Instant, timeZone: string): ZonedDateTime {
   parse('instant', value)
-  return Temporal.Instant.from(value).toZonedDateTimeISO(zone(timeZone)).toString()
+  const validatedZone = zone(timeZone)
+  try {
+    return Temporal.Instant.from(value).toZonedDateTimeISO(validatedZone).toString()
+  } catch { return fail('CLOCK_INVALID_INPUT') }
 }
 export function toInstant(value: ZonedDateTime): Instant {
   parse('zonedDateTime', value)
-  return Temporal.ZonedDateTime.from(value).toInstant().toString()
+  try {
+    return Temporal.ZonedDateTime.from(value).toInstant().toString()
+  } catch { return fail('CLOCK_INVALID_INPUT') }
 }
 export function resolveLocal(local: LocalDateTime, timeZone: string, disambiguation: Disambiguation = 'reject'): ZonedDateTime {
   parse('localDateTime', local)
@@ -128,17 +136,22 @@ export function add(value: Value, units: DateUnits | TimeUnits, options: Arithme
 export function compare(a: Value, b: Value): -1 | 0 | 1 {
   checked(a); checked(b)
   if (a.kind !== b.kind) return fail('CLOCK_INCOMPATIBLE_TYPES')
-  const x = object(a.kind, a.value)!
-  const y = object(b.kind, b.value)!
-  let n: number
-  switch (a.kind) {
-    case 'date': n = Temporal.PlainDate.compare(x as Temporal.PlainDate, y as Temporal.PlainDate); break
-    case 'time': n = Temporal.PlainTime.compare(x as Temporal.PlainTime, y as Temporal.PlainTime); break
-    case 'instant': n = Temporal.Instant.compare(x as Temporal.Instant, y as Temporal.Instant); break
-    case 'localDateTime': n = Temporal.PlainDateTime.compare(x as Temporal.PlainDateTime, y as Temporal.PlainDateTime); break
-    case 'zonedDateTime': n = Temporal.ZonedDateTime.compare(x as Temporal.ZonedDateTime, y as Temporal.ZonedDateTime)
+  try {
+    const x = object(a.kind, a.value)!
+    const y = object(b.kind, b.value)!
+    let n: number
+    switch (a.kind) {
+      case 'date': n = Temporal.PlainDate.compare(x as Temporal.PlainDate, y as Temporal.PlainDate); break
+      case 'time': n = Temporal.PlainTime.compare(x as Temporal.PlainTime, y as Temporal.PlainTime); break
+      case 'instant': n = Temporal.Instant.compare(x as Temporal.Instant, y as Temporal.Instant); break
+      case 'localDateTime': n = Temporal.PlainDateTime.compare(x as Temporal.PlainDateTime, y as Temporal.PlainDateTime); break
+      case 'zonedDateTime': n = Temporal.ZonedDateTime.compare(x as Temporal.ZonedDateTime, y as Temporal.ZonedDateTime)
+    }
+    return Math.sign(n) as -1 | 0 | 1
+  } catch (e) {
+    if (e instanceof ClockError) throw e
+    return fail('CLOCK_INVALID_INPUT')
   }
-  return Math.sign(n) as -1 | 0 | 1
 }
 export function format(value: Value, options: DisplayOptions = {}): string {
   checked(value)
@@ -172,10 +185,21 @@ export function createClock(settings: ClockSettings = {}, provider: ClockPort = 
     new Intl.DateTimeFormat(locale)
     if (!['h11', 'h12', 'h23', 'h24'].includes(hourCycle)) return fail('CLOCK_INVALID_CONFIG')
   } catch { return fail('CLOCK_INVALID_CONFIG') }
-  const now = (): Instant => parse('instant', provider.now()).value
+  const now = (): Instant => {
+    try { return parse('instant', provider.now()).value }
+    catch { return fail('CLOCK_INVALID_INPUT') }
+  }
   return Object.freeze({
     now,
-    today: (z: string = timeZone): CalendarDate => Temporal.Instant.from(now()).toZonedDateTimeISO(zone(z)).toPlainDate().toString(),
+    today: (z: string = timeZone): CalendarDate => {
+      const current = now()
+      const resolvedZone = zone(z)
+      try { return parse('date', Temporal.Instant.from(current).toZonedDateTimeISO(resolvedZone).toPlainDate().toString()).value }
+      catch (e) {
+        if (e instanceof ClockError) throw e
+        return fail('CLOCK_INVALID_INPUT')
+      }
+    },
     parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare,
     format: (v: Value, opts: DisplayOptions = {}) => format(v, { locale, hourCycle, ...opts, timeZone: opts.timeZone ?? timeZone }),
   })
