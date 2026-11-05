@@ -2,9 +2,9 @@
 
 > **In short:** a headless Nuxt foundation for consistent date, time, time-zone and localisation operations on the server and in the browser.
 
-`clock` is being designed. It is not yet an installable capability.
+`clock` has a partial pure TypeScript core implementation. It is not yet an installable Nuxt capability; the Nuxt/Nitro integration is outstanding.
 
-- [Consumer contract](CONTRACT.md) — proposed public integration surface; not yet implemented.
+- [Consumer contract](CONTRACT.md) — public integration surface; core partially implemented.
 - [Design](docs/design.md) — capability decisions and boundaries.
 - [Plan](PLAN.md) — implementation and acceptance work.
 - [Resources](RESOURCES.md) — governing architecture at a verified revision.
