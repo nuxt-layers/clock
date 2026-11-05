@@ -2,9 +2,9 @@
 
 > **In short:** a headless Nuxt foundation for consistent date, time, time-zone and localisation operations on the server and in the browser.
 
-`clock` has a pure TypeScript core and a Nuxt/Nitro integration implementation. The core and minimal-host integration passed local tests, typechecks and a production build; dependency lockfile commits and frozen-install CI checks remain outstanding.
+`clock` provides a pure TypeScript temporal core and thin Nuxt/Nitro integration. Applications can compose it without storage, IAM or presentation dependencies.
 
-- [Consumer contract](CONTRACT.md) — public integration surface; the proposed consumer interface, with integration awaiting acceptance.
+- [Consumer contract](CONTRACT.md) — public integration surface; the self-contained public integration interface.
 - [Design](docs/design.md) — capability decisions and boundaries.
 - [Plan](PLAN.md) — implementation and acceptance work.
 - [Resources](RESOURCES.md) — governing architecture at a verified revision.
