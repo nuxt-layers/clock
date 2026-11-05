@@ -1,0 +1,26 @@
+{
+  "name": "@nuxt-layers/clock",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless date/time foundation for Nuxt",
+  "license": "MIT",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=26.13.0"
+  },
+  "exports": {
+    "./core": "./shared/core.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "0.5.1"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

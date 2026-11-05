@@ -2,11 +2,11 @@
 
 > **In short:** a single typed date/time interface for Nuxt server and browser code, with explicit temporal types, time zones and deterministic testing.
 
-**Status:** Design proposal; not implemented or available for consumption. Every signature and configuration item below is proposed, not an existing export. Acceptance requires implemented exports and contract tests.
+**Status:** Partial implementation. The pure TypeScript core exists at `shared/core.ts`, and `@nuxt-layers/clock/core` is declared as a source export. Nuxt/Nitro integration, the server export, composable, minimal-host acceptance and production packaging are **not implemented**. The package is not yet ready for a consuming Nuxt application.
 
 ## Install
 
-Planned package: `@nuxt-layers/clock` (Git-backed dependency tracking the latest accepted `master` during development). **Do not install yet.**
+Planned package: `@nuxt-layers/clock` (Git-backed dependency tracking the latest accepted `master` during development). **Do not integrate into a consuming Nuxt application yet.**
 
 Proposed Nuxt configuration:
 
@@ -49,7 +49,7 @@ type ClockPort = { now(): string } // this layer returns UTC ISO 8601, e.g. 2026
 
 ## Client and server functions
 
-**Proposed public entry points:** `@nuxt-layers/clock/core` (pure, environment-neutral TypeScript functions), `@nuxt-layers/clock/server` (Nitro-safe server functions) and auto-imported `useClock()` (Nuxt composable, usable in a Nuxt app including SSR). The package root `@nuxt-layers/clock` is the Nuxt layer entry used by `extends`; it is not the portable utility entry. The same documented operation names and types apply to each context, and no consumer imports private files. These paths are part of the proposed contract and must be implemented exactly or revised before acceptance.
+**Public core source export:** `@nuxt-layers/clock/core` (pure, environment-neutral TypeScript functions), **Proposed only:** `@nuxt-layers/clock/server` (Nitro-safe server functions) and auto-imported `useClock()` (Nuxt composable, usable in a Nuxt app including SSR). The package root `@nuxt-layers/clock` is the Nuxt layer entry used by `extends`; it is not the portable utility entry. The same documented operation names and types apply to each context, and no consumer imports private files. The Nuxt paths must be implemented exactly or revised before acceptance. Core services can be instantiated with `createClock(settings?, provider?)`; a default `now()` and `today()` are also exported. Provider injection is instance-scoped.
 
 Canonical value types are strings, not JavaScript `Date` objects:
 
@@ -130,7 +130,7 @@ A consuming screen must provide accessible labels for presented times, identify 
 
 ## You will hit this
 
-- **Not implemented:** this is a specification for review, not a usable package.
+- **Partial implementation only:** the core source is available for review, but the Nuxt layer, server entry and composable are not available. The package is private and has no Nuxt runtime yet.
 - **Input is strict:** no guesswork for `05/11/26`, missing offsets or free-text dates.
 - **Zone identifiers:** IANA names such as `Europe/London`; never infer a zone from a UTC offset.
 - **DST:** `resolveLocal` rejects overlaps/gaps by default; callers select a documented policy.
