@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { add, ClockError, compare, createClock, format, isValid, parse, resolveLocal, serialise, toInstant, toZone } from '../shared/core'
+import { add, ClockError, compare, createClock, format, formatPattern, isValid, parse, parsePattern, resolveLocal, serialise, toInstant, toZone } from '../shared/core'
 
 const instant = '2026-11-05T14:30:00.123456789Z'
 
@@ -147,5 +147,79 @@ describe('temporal boundaries', () => {
     expect(() => add(parse('instant', instant), { days: 1 })).toThrowError('CLOCK_UNSUPPORTED_OPERATION')
     expect(() => add(parse('localDateTime', '2026-01-01T12:00:00'), { days: 1, hours: 1 }))
       .toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+  })
+})
+
+describe('explicit pattern formatting and parsing', () => {
+  it('formats canonical dates with explicit separators', () => {
+    const date = parse('date', '2026-11-05')
+    expect(formatPattern(date, 'dd/MM/yyyy')).toBe('05/11/2026')
+    expect(formatPattern(date, 'yyyy/MM/dd')).toBe('2026/11/05')
+    expect(formatPattern(date, 'dd:MM:yy')).toBe('05:11:26')
+    expect(parsePattern('date', '05:11:26', 'dd:MM:yy', { century: 2000 })).toEqual(date)
+  })
+
+  it('round-trips full local date-times and fractional precision', () => {
+    const value = parse('localDateTime', '2024-02-29T23:07:09.123')
+    const pattern = "dd/MM/yyyy'T'HH:mm:ss.SSS"
+    const display = formatPattern(value, pattern)
+    expect(display).toBe('29/02/2024T23:07:09.123')
+    expect(parsePattern('localDateTime', display, pattern)).toEqual(value)
+  })
+
+  it('round-trips time-only and quoted literals', () => {
+    const value = parse('time', '14:02:03')
+    expect(formatPattern(value, "HH'h' mm'm' ss's'")).toBe('14h 02m 03s')
+    expect(parsePattern('time', '14h 02m 03s', "HH'h' mm'm' ss's'")).toEqual(value)
+    expect(formatPattern(value, "HH''mm:ss")).toBe("14'02:03")
+  })
+
+  it('does not infer the century for short years', () => {
+    expect(() => parsePattern('date', '05/11/26', 'dd/MM/yy'))
+      .toThrowError('CLOCK_INVALID_CONFIG')
+    expect(parsePattern('date', '05/11/26', 'dd/MM/yy', { century: 1900 }).value)
+      .toBe('1926-11-05')
+    expect(() => parsePattern('date', '05/11/26', 'dd/MM/yy', { century: 1950 }))
+      .toThrowError('CLOCK_INVALID_CONFIG')
+    expect(() => parsePattern('date', '05/11/26', 'dd/MM/yy', { century: 0 }))
+      .not.toThrow()
+  })
+
+  it('rejects impossible dates and non-exact matching', () => {
+    expect(() => parsePattern('date', '29/02/2026', 'dd/MM/yyyy'))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => parsePattern('date', '5/11/2026', 'dd/MM/yyyy'))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => parsePattern('date', '05-11-2026', 'dd/MM/yyyy'))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => parsePattern('time', '23:59:60', 'HH:mm:ss'))
+      .toThrowError('CLOCK_INVALID_INPUT')
+    expect(() => parsePattern('date', '05/11/2026 ', 'dd/MM/yyyy'))
+      .toThrowError('CLOCK_INVALID_INPUT')
+  })
+
+  it('rejects unsupported, duplicated or incomplete patterns', () => {
+    const date = parse('date', '2026-11-05')
+    for (const pattern of ['dd/MMM/yyyy', 'dd/MM/yyyy dd', 'dd/MM', 'dd/MM/yyyy HH', "dd/MM/yyyy'bad", 'dd/MM/yyyy yyyy']) {
+      expect(() => formatPattern(date, pattern)).toThrowError('CLOCK_INVALID_PATTERN')
+    }
+    expect(() => parsePattern('date', '05/11/2026', 'dd/MM/yyyy HH:mm:ss'))
+      .toThrowError('CLOCK_INVALID_PATTERN')
+    expect(() => formatPattern(parse('instant', instant), 'yyyy/MM/dd'))
+      .toThrowError('CLOCK_INVALID_PATTERN')
+  })
+
+  it('makes precision loss explicit for presentation-only patterns', () => {
+    const original = parse('time', '12:30:45.123456789')
+    const displayed = formatPattern(original, 'HH:mm:ss.SSS')
+    expect(displayed).toBe('12:30:45.123')
+    expect(parsePattern('time', displayed, 'HH:mm:ss.SSS').value).toBe('12:30:45.123')
+  })
+
+  it('exports pattern operations through an instance without affecting canonical parsing', () => {
+    const clock = createClock()
+    expect(clock.formatPattern(clock.parse('date', '2026-11-05'), 'dd/MM/yyyy')).toBe('05/11/2026')
+    expect(clock.parsePattern('date', '05/11/2026', 'dd/MM/yyyy').value).toBe('2026-11-05')
+    expect(() => clock.parse('date', '05/11/2026')).toThrowError('CLOCK_INVALID_INPUT')
   })
 })
