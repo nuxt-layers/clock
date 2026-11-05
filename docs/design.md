@@ -33,8 +33,8 @@ No dependency on another ecosystem capability is required. The host may supply l
 ## Architecture
 
 - **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface.
-- **Nuxt integration:** configuration validation, `useClock()` and SSR context integration; no global mutable per-user settings.
-- **Nitro integration:** request-safe server-side access to the same service and optional injected clock.
+- **Nuxt integration:** `runtimeConfig.public.clock` defaults, `useClock()` and SSR-stable client configuration; no global mutable per-user settings.
+- **Nitro integration:** `@nuxt-layers/clock/server` exposes `useServerClock()` to Nitro request handlers, with a fresh clock instance and optional injected provider.
 - **No presentation:** consumers build their own UI or use a separate UI capability.
 - **No persistence:** no storage register is required unless implementation introduces or causes actual storage.
 
@@ -64,7 +64,7 @@ The planned Nuxt host composition must fit ADR-0012's 50-line budget, including 
 
 ## Implementation checks still required
 
-1. Prove the source core export map and request-scoped injected clock in minimal Nuxt/Nitro hosts.
+1. Validate the published source export map, Nuxt composition and request-scoped clock use in the minimal host.
 2. Verify the runtime compatibility matrix for the initial `@js-temporal/polyfill` implementation and any native Temporal transition.
 3. Validate time-zone data assumptions and cross-environment precision in contract tests.
 

@@ -2,36 +2,36 @@
 
 > **In short:** a single typed date/time interface for Nuxt server and browser code, with explicit temporal types, time zones and deterministic testing.
 
-**Status:** Partial implementation. The pure TypeScript core exists at `shared/core.ts`, and `@nuxt-layers/clock/core` is declared as a source export. Nuxt/Nitro integration, the server export, composable, minimal-host acceptance and production packaging are **not implemented**. The package is not yet ready for a consuming Nuxt application.
+**Status:** Integration implementation in review. The core, Nuxt layer entry, composable, Nitro helper and minimal example exist in source. The integration and lockfile are **not yet validated**; do not accept this contract for production consumption until CI and minimal-host acceptance pass.
 
 ## Install
 
-Planned package: `@nuxt-layers/clock` (Git-backed dependency tracking the latest accepted `master` during development). **Do not integrate into a consuming Nuxt application yet.**
+Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. **Do not treat the integration as accepted until the host checks pass.**
 
-Proposed Nuxt configuration:
+Host Nuxt configuration (the package root is the layer entry):
 
 ```ts
 export default defineNuxtConfig({
   extends: ['@nuxt-layers/clock'],
-  clock: {
-    locale: 'en-GB',
-    timeZone: 'UTC',
-    hourCycle: 'h23',
+  runtimeConfig: {
+    public: {
+      clock: { locale: 'en-GB', timeZone: 'UTC', hourCycle: 'h23' },
+    },
   },
 })
 ```
 
-The host must not write adapters or register an HTTP endpoint. Server and client entry points are listed below; actual import paths will be confirmed against implementation before this contract is accepted.
+The host need not write adapters or register HTTP endpoints for the capability. The layer adds no HTTP routes. Install with the host's package manager, then compose with `extends` as above; an example is in `examples/minimal-host`.
 
 ## Settings
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `clock.locale` | `en-GB` | BCP 47 locale used when formatting without an override |
-| `clock.timeZone` | `UTC` | IANA time zone for calendar operations and default presentation |
-| `clock.hourCycle` | `h23` | Hour-cycle preference for localised output (`h11`, `h12`, `h23`, `h24`) |
+| `runtimeConfig.public.clock.locale` | `en-GB` | BCP 47 locale used when formatting without an override |
+| `runtimeConfig.public.clock.timeZone` | `UTC` | IANA time zone for calendar operations and default presentation |
+| `runtimeConfig.public.clock.hourCycle` | `h23` | Hour-cycle preference for localised output (`h11`, `h12`, `h23`, `h24`) |
 
-A caller may override locale, time zone and hour cycle per operation. Invalid configuration fails at start-up with `CLOCK_INVALID_CONFIG`. No environment variables, secrets or network services are required.
+A caller may override locale, time zone and hour cycle per clock instance or formatting call. Invalid configuration fails at start-up with `CLOCK_INVALID_CONFIG`. No environment variables, secrets or network services are required.
 
 The host resolves user preferences, when available, and passes them as explicit overrides. The layer never looks up identity, profile or tenant records. Browser time-zone detection must be an explicit opt-in at the presentation boundary; it cannot silently change SSR output.
 
@@ -49,7 +49,24 @@ type ClockPort = { now(): string } // this layer returns UTC ISO 8601, e.g. 2026
 
 ## Client and server functions
 
-**Public core source export:** `@nuxt-layers/clock/core` (pure, environment-neutral TypeScript functions), **Proposed only:** `@nuxt-layers/clock/server` (Nitro-safe server functions) and auto-imported `useClock()` (Nuxt composable, usable in a Nuxt app including SSR). The package root `@nuxt-layers/clock` is the Nuxt layer entry used by `extends`; it is not the portable utility entry. The same documented operation names and types apply to each context, and no consumer imports private files. The Nuxt paths must be implemented exactly or revised before acceptance. Core services can be instantiated with `createClock(settings?, provider?)`; a default `now()` and `today()` are also exported. Provider injection is instance-scoped.
+**Public source exports:** `@nuxt-layers/clock/core` exposes the pure TypeScript functions; `@nuxt-layers/clock/server` exposes `useServerClock(overrides?, provider?)` and `createClock` to Nitro handlers; the Nuxt layer auto-imports `useClock(overrides?, provider?)` for Vue/SSR. `@nuxt-layers/clock` is solely the Nuxt layer configuration entry. Both helpers expose the same `createClock` operation set and read `runtimeConfig.public.clock`, with optional per-call overrides. No public import exposes private implementation paths. The `/server` entry is server-only: call it within a Nitro handler, not during module initialisation.
+
+Client/SSR example:
+
+```ts
+const clock = useClock({ timeZone: 'Europe/London' })
+const date = clock.format(clock.parse('date', '2026-11-05'))
+```
+
+Server handler example:
+
+```ts
+import { useServerClock } from '@nuxt-layers/clock/server'
+const clock = useServerClock()
+const issuedAt = clock.now()
+```
+
+Inject deterministic time with `createClock(settings?, { now: () => '2026-11-05T14:30:00.000Z' })` or the optional provider argument on either helper. Provider injection is confined to that instance; no global mutation.
 
 Canonical value types are strings, not JavaScript `Date` objects:
 
@@ -130,7 +147,7 @@ A consuming screen must provide accessible labels for presented times, identify 
 
 ## You will hit this
 
-- **Partial implementation only:** the core source is available for review, but the Nuxt layer, server entry and composable are not available. The package is private and has no Nuxt runtime yet.
+- **Integration unverified:** the new Nuxt/Nitro surfaces are source implementations awaiting lockfile refresh, typecheck and minimal-host acceptance. The package is private (not published); Git-backed development consumption is intended.
 - **Input is strict:** no guesswork for `05/11/26`, missing offsets or free-text dates.
 - **Zone identifiers:** IANA names such as `Europe/London`; never infer a zone from a UTC offset.
 - **DST:** `resolveLocal` rejects overlaps/gaps by default; callers select a documented policy.
