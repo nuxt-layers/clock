@@ -2,11 +2,11 @@
 
 > **In short:** a single typed date/time interface for Nuxt server and browser code, with explicit temporal types, time zones and deterministic testing.
 
-**Status:** Core and Nuxt/Nitro integration locally validated on Node 26.13.0 and pnpm 12.16.1: 10 core tests, 2 minimal-host integration tests, both typechecks and minimal-host production build passed. Root and minimal-host lockfiles are committed; both frozen installs passed locally. CI and upstream-Git consumer acceptance remain outstanding.
+**Status:** Development consumer contract accepted against the current `master`. Core, Nuxt/Nitro and independent Git-backed consumption passed the Quality workflow, including frozen installs, tests, typechecks, production builds and the 50-line composition budget. This is not a formal package release.
 
 ## Install
 
-Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. **Do not treat final integration as accepted until CI and independent upstream-Git consumer checks pass.**
+Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. The accepted `master` is the current development integration target.
 
 Host Nuxt configuration (the package root is the layer entry):
 
@@ -91,7 +91,7 @@ type TimeUnits = { hours?: number; minutes?: number; seconds?: number }
 type ArithmeticOptions = { disambiguation?: Disambiguation }
 ```
 
-Proposed operations, exposed through the same semantic service on client and server:
+Public operations, exposed through the same semantic service on client and server:
 
 | Operation | Signature | Behaviour |
 |---|---|---|
@@ -147,7 +147,7 @@ A consuming screen must provide accessible labels for presented times, identify 
 
 ## You will hit this
 
-- **Integration acceptance pending:** local core/SSR/Nitro tests, typechecks and production build passed, and both frozen installs passed locally; independent upstream-Git consumer and CI checks remain outstanding. The package is private (not published); Git-backed development consumption is intended.
+- **Development consumption accepted:** local and independent Git-backed CI acceptance passed. The package is private (not published); consumers follow current accepted `master` and refresh resolution after provider changes.
 - **Input is strict:** no guesswork for `05/11/26`, missing offsets or free-text dates.
 - **Zone identifiers:** IANA names such as `Europe/London`; never infer a zone from a UTC offset.
 - **DST:** `resolveLocal` rejects overlaps/gaps by default; callers select a documented policy.
