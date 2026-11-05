@@ -2,7 +2,7 @@
 
 > **In short:** the smallest Nuxt consumer proving the public Clock contract in the app and Nitro.
 
-Run from this directory with pnpm after installing dependencies. The Nuxt host uses only the documented package entry and public composable.
+Run from this directory with pnpm after installing dependencies: `pnpm install`, `pnpm test`, `pnpm build`, then `pnpm typecheck`. The host has its own development dependency graph. The Nuxt host uses only the documented package entry and public composable.
 
 - `app/app.vue` uses the auto-imported `useClock()` and formats a fixed date to avoid hydration drift.
 - `server/api/clock.get.ts` uses the public server entry and exposes a sample host-owned route. The Clock layer itself registers no HTTP routes.
