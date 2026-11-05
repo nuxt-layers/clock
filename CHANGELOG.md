@@ -4,5 +4,6 @@
 
 ## 2026-11-05
 
+- Began implementing the pure TypeScript clock core with strict parsing, time zones, DST resolution, arithmetic and contract tests; Nuxt/Nitro integration remains outstanding.
 - Refined the proposed public contract: precision, strict parsing, arithmetic, DST policy, error shape and export paths. No implementation exists.
 - Drafted the proposed Clock Foundation design and standalone consumer contract. No implementation or release exists.
