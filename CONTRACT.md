@@ -52,13 +52,13 @@ type ClockPresentationPreferences = {
 }
 ```
 
-Proposed Configuration keys are `clock.locale`, `clock.time-zone`, `clock.hour-cycle`, `clock.date-pattern`, `clock.time-pattern`, `clock.date-time-pattern`. They are proposals for host-declared settings, **not** existing built-in Configuration keys. Defaults: `en-GB`, `UTC`, `h23`, `dd/MM/yyyy`, `HH:mm:ss`, `dd/MM/yyyy HH:mm:ss` respectively. An application without Configuration may supply the same values directly. Patterns control display or explicitly patterned input only: never canonical persistence formats.
+Proposed Configuration keys are `clock.locale`, `clock.time-zone`, `clock.hour-cycle`, `clock.date-pattern`, `clock.time-pattern`, `clock.date-time-pattern`. They are proposals for host-declared settings, **not** existing built-in Configuration keys. Proposed host-declared defaults: `en-GB`, `UTC`, `h23`, `dd/MM/yyyy`, `HH:mm:ss`, `dd/MM/yyyy HH:mm:ss` respectively. An application without Configuration may supply the same values directly. Patterns control display or explicitly patterned input only: never canonical persistence formats.
 
 The **host**, not Clock, resolves scope, precedence, account permissions and SSR visibility. It should obtain effective values server-side, pass only viewer-authorised presentation values to the browser, and use the same resolved values for the initial SSR render and hydration. Never put another account's preferences into shared or public runtime configuration. Host tests should mock the six resolved values, a missing/invalid preference and scoped overrides; no Configuration installation is needed in Clock's minimal host.
 
-### Proposed explicit pattern API (not implemented)
+### Explicit pattern API
 
-The existing `parse(kind, input)` and `format(value, options?)` remain unchanged. Future operations:
+The existing `parse(kind, input)` and `format(value, options?)` remain unchanged. Additional public operations:
 
 ```ts
 formatPattern(value: Value, pattern: string): string
@@ -70,9 +70,9 @@ parsePattern(
 ): Value
 ```
 
-Initial token grammar is case-sensitive: `yyyy` (four-digit year), `yy` (two digits, requiring an explicit `century` such as `2000`), `MM` (month), `dd` (day), `HH` (24-hour clock), `mm` (minutes), `ss` (seconds), and `S`/`SS`/`SSS` (one/two/three fractional-second digits). Numeric fields have exact widths. Separators such as `/`, `-`, `:`, spaces and `T` are literal; alphabetic literal text must be single-quoted, with `''` denoting an escaped quote. Unsupported, repeated, contradictory or incomplete token sets are invalid. Date requires year/month/day; time requires hour/minute/second; localDateTime requires both. No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding/current-year pivot.
+Pattern parsing and formatting share a case-sensitive token grammar: `yyyy` (four-digit year), `yy` (two digits, requiring an explicit `century` such as `2000`), `MM` (month), `dd` (day), `HH` (24-hour clock), `mm` (minutes), `ss` (seconds), and `S`/`SS`/`SSS` (one/two/three fractional-second digits). Numeric fields have exact widths. Separators such as `/`, `-`, `:`, spaces and `T` are literal; alphabetic literal text must be single-quoted, with `''` denoting an escaped quote. Unsupported, repeated, contradictory or incomplete token sets are invalid. Date requires year/month/day; time requires hour/minute/second; localDateTime requires both. No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding/current-year pivot.
 
-A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with proposed new `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These are **proposed**, not yet part of the implemented `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns must round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing; use explicit canonical parsing and zone conversion.
+A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These codes are part of the public `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns must round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing and formatting; use explicit canonical parsing and zone conversion.
 
 ## Host passes
 
@@ -137,6 +137,8 @@ Public operations, exposed through the same semantic service on client and serve
 | Current instant | `now(): Instant` | Reads injected clock or system clock; server is authoritative for security-sensitive uses |
 | Calendar date | `today(timeZone?: string): CalendarDate` | Current date in the stated/default zone |
 | Strict parsing | `parse(kind: TemporalKind, input: string): Value` | Accepts documented canonical formats only; rejects ambiguity |
+| Pattern parsing | `parsePattern(kind: PatternKind, input: string, pattern: string, options?: PatternOptions): Value` | Explicit strict patterns for dates, times and local date-times |
+| Pattern formatting | `formatPattern(value: Value, pattern: string): string` | Deterministic numeric presentation, including intentionally lossy patterns |
 | Formatting | `format(value: Value, options?: DisplayOptions): string` | Locale-aware human-readable output, never for persistence |
 | Zone conversion | `toZone(instant: Instant, timeZone: string): ZonedDateTime` | Preserves the instant |
 | Local resolution | `resolveLocal(local: LocalDateTime, timeZone: string, disambiguation?: Disambiguation): ZonedDateTime` | Default `reject` on DST gaps/overlaps |
@@ -168,7 +170,7 @@ Functions are pure except `now` and `today`. A date-only value is never silently
 
 **Error contract:** failed operations throw `ClockError` with stable `code` and serialisable `params` fields; `isValid()` returns a boolean. Provider exceptions, missing provider values and invalid provider instants map to `CLOCK_INVALID_INPUT`. Invalid settings map to `CLOCK_INVALID_CONFIG`; invalid zones map to `CLOCK_INVALID_TIME_ZONE`. The supported canonical year range also applies to generated conversion and arithmetic results. Raw implementation exceptions do not cross the public API.
 
-**Error codes:** `CLOCK_INVALID_CONFIG`, `CLOCK_INVALID_INPUT`, `CLOCK_INVALID_TIME_ZONE`, `CLOCK_AMBIGUOUS_LOCAL_TIME`, `CLOCK_NONEXISTENT_LOCAL_TIME`, `CLOCK_INCOMPATIBLE_TYPES`, `CLOCK_UNSUPPORTED_OPERATION`. Public errors expose code and structured parameters, never implementation exceptions or localised wording.
+**Error codes:** `CLOCK_INVALID_CONFIG`, `CLOCK_INVALID_PATTERN`, `CLOCK_INVALID_INPUT`, `CLOCK_INVALID_TIME_ZONE`, `CLOCK_AMBIGUOUS_LOCAL_TIME`, `CLOCK_NONEXISTENT_LOCAL_TIME`, `CLOCK_INCOMPATIBLE_TYPES`, `CLOCK_UNSUPPORTED_OPERATION`. Public errors expose code and structured parameters, never implementation exceptions or localised wording.
 
 No built-in HTTP endpoints, events, database migrations or persistence schemas.
 
