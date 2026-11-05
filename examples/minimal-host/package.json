@@ -1,0 +1,14 @@
+{
+  "name": "clock-minimal-host",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@nuxt-layers/clock": "file:../..",
+    "nuxt": "^4.6.0"
+  }
+}
