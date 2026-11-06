@@ -1,6 +1,6 @@
 import { defineEventHandler } from 'nuxt/server'
 import { useServerClock } from '@nuxt-layers/clock/server'
-import { mockConfigurationAnswer } from '../../shared/mock-configuration'
+import { mockConfigurationAnswer } from '#shared/mock-configuration'
 
 export default defineEventHandler(() => {
   const preferences = mockConfigurationAnswer()
