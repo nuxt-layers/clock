@@ -1,3 +1,6 @@
+import { formatPattern, parsePattern } from './pattern'
+export { formatPattern, parsePattern } from './pattern'
+export type { PatternKind, PatternOptions } from './pattern'
 import { Temporal } from '@js-temporal/polyfill'
 
 export type Instant = string
@@ -14,7 +17,7 @@ export type ArithmeticOptions = { disambiguation?: Disambiguation }
 export type DisplayOptions = { locale?: string; timeZone?: string; hourCycle?: 'h11' | 'h12' | 'h23' | 'h24'; dateStyle?: 'full' | 'long' | 'medium' | 'short'; timeStyle?: 'full' | 'long' | 'medium' | 'short' }
 export type ClockPort = { now(): string }
 export type ClockSettings = Pick<DisplayOptions, 'locale' | 'timeZone' | 'hourCycle'>
-export type ClockErrorCode = 'CLOCK_INVALID_CONFIG' | 'CLOCK_INVALID_INPUT' | 'CLOCK_INVALID_TIME_ZONE' | 'CLOCK_AMBIGUOUS_LOCAL_TIME' | 'CLOCK_NONEXISTENT_LOCAL_TIME' | 'CLOCK_INCOMPATIBLE_TYPES' | 'CLOCK_UNSUPPORTED_OPERATION'
+export type ClockErrorCode = 'CLOCK_INVALID_CONFIG' | 'CLOCK_INVALID_PATTERN' | 'CLOCK_INVALID_INPUT' | 'CLOCK_INVALID_TIME_ZONE' | 'CLOCK_AMBIGUOUS_LOCAL_TIME' | 'CLOCK_NONEXISTENT_LOCAL_TIME' | 'CLOCK_INCOMPATIBLE_TYPES' | 'CLOCK_UNSUPPORTED_OPERATION'
 
 export class ClockError extends Error {
   constructor(public readonly code: ClockErrorCode, public readonly params: Record<string, string | number> = {}) {
@@ -202,7 +205,7 @@ export function createClock(settings: ClockSettings = {}, provider: ClockPort = 
         return fail('CLOCK_INVALID_INPUT')
       }
     },
-    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare,
+    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern,
     format: (v: Value, opts: DisplayOptions = {}) => format(v, { locale, hourCycle, ...opts, timeZone: opts.timeZone ?? timeZone }),
   })
 }
