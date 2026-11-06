@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mockConfigurationAnswer } from '../shared/mock-configuration'
+import { mockConfigurationAnswer } from '#shared/mock-configuration'
 
 // Mocked resolved viewer settings: identical for the initial SSR and hydration.
 const preferences = mockConfigurationAnswer()
