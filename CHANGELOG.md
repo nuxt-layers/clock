@@ -4,6 +4,8 @@
 
 ## 2026-11-08
 
+- README: responsibility and exclusions, provided and required capabilities, development commands, security and privacy, and links to every repository document.
+- Resources: architecture rules re-pinned to the revision with Layer Standard §5.
 - All planned work is complete, so `PLAN.md` is removed.
 - Contract: pattern operations and the host-side preference pattern are described as accepted, not proposed; the public `ClockSettings`, `PatternKind`, `PatternOptions`, `ClockErrorCode` and `ClockError` types are listed; configuration validation is stated to run at app initialisation on server and client.
 
