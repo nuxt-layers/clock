@@ -4,6 +4,7 @@
 
 ## 2026-11-08
 
+- Pattern grammar: unpadded `d`, `M` and `H`; English month (`MMM`, `MMMM`) and weekday (`EEE`, `EEEE`) names read in any letter case, with weekdays checked against the date; 12-hour `hh` and `h` with `am`/`pm`. `dd/MMM/yyyy`, previously invalid, is now valid.
 - Added `parseInterchange` and `formatInterchange` for RFC 3339, JWT NumericDate, epoch milliseconds, HTTP-date (including the obsolete forms), RFC 5322, ISO 8601 basic, and X.509 UTCTime and GeneralizedTime, with tests from each standard.
 - Design brought up to date with the accepted pattern and preference work; open runtime and time-zone questions moved to a restored `PLAN.md`.
 - Contract: proposed interchange formats for protocol dates (RFC 3339, JWT NumericDate, epoch milliseconds, HTTP-date, RFC 5322, ISO 8601 basic, X.509 UTCTime and GeneralizedTime) and proposed pattern additions for common human formats.

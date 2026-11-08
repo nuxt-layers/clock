@@ -66,9 +66,30 @@ formatPattern(value: Value, pattern: string): string
 parsePattern(kind: PatternKind, input: string, pattern: string, options?: PatternOptions): Value
 ```
 
-Pattern parsing and formatting share a case-sensitive token grammar: `yyyy` (four-digit year), `yy` (two digits, requiring an explicit `century` such as `2000`), `MM` (month), `dd` (day), `HH` (24-hour clock), `mm` (minutes), `ss` (seconds), and `S`/`SS`/`SSS` (one/two/three fractional-second digits). Numeric fields have exact widths. Separators such as `/`, `-`, `:`, spaces and `T` are literal; alphabetic literal text must be single-quoted, with `''` denoting an escaped quote. Unsupported, repeated, contradictory or incomplete token sets are invalid. Date requires year/month/day; time requires hour/minute/second; localDateTime requires both. No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding/current-year pivot.
+Pattern parsing and formatting share one token grammar:
 
-A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These codes are part of the public `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns must round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing and formatting; use explicit canonical parsing and zone conversion.
+| Token | Writes | Reads |
+|---|---|---|
+| `yyyy` | Four-digit year | Exactly four digits |
+| `yy` | Last two digits of the year | Two digits; requires an explicit `century`, such as `2000` |
+| `MM`, `dd`, `HH`, `mm`, `ss` | Month, day, 24-hour hour, minute, second, two digits | Exactly two digits |
+| `M`, `d`, `H` | Month, day or 24-hour hour without padding: `5/1/2026` | One or two digits |
+| `MMM`, `MMMM` | English month name, abbreviated (`Nov`) or full (`November`) | The same name in any letter case; no other length |
+| `EEE`, `EEEE` | English weekday name, abbreviated (`Sun`) or full (`Sunday`) | The same name in any letter case; must agree with the date |
+| `hh`, `h` | 12-hour hour, `01`–`12` or `1`–`12`; requires `a` | Two digits, or one or two digits; `1`–`12` only |
+| `a` | `am` or `pm`, lower-case | Either, in any letter case; `12 am` is midnight and `12 pm` noon |
+| `S`, `SS`, `SSS` | One, two or three fractional-second digits | Exactly that many digits |
+
+Rules:
+
+- Separators `/`, `-`, `:`, `.`, `,`, spaces and `T` are literal and case-sensitive. Any other alphabetic text must be single-quoted, with `''` for a quote; quoted text is case-sensitive too.
+- A field may appear once. `HH` with `hh`, `h` without `a`, and `a` without `h` or `hh` are contradictory.
+- An unpadded token (`M`, `d`, `H`, `h`) may not sit directly next to another numeric token, as in `dMyyyy`, because the digits could not be split unambiguously.
+- `date` requires year, month and day and allows a weekday; `time` requires hour, minute and second and allows `a` and fractions; `localDateTime` requires both. A time therefore always includes seconds: `h:mm:ss a` reads `5:30:00 pm`, but `h:mm a` is incomplete.
+- Names are English, because a pattern is a fixed, locale-independent format; localised names are output only, through `format`.
+- No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding or current-year pivot.
+
+A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These codes are part of the public `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns, including those with names, unpadded fields and the 12-hour clock, round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing and formatting; use explicit canonical parsing and zone conversion.
 
 ### Interchange formats
 
@@ -94,20 +115,6 @@ formatInterchange(value: Value, format: InterchangeFormat): string | number  // 
 | `asn1GeneralizedTime` | RFC 5280 §4.1.2.5.2 | X.509 validity from 2050 | `YYYYMMDDHHMMSSZ`, no fractional seconds | The same |
 
 Rules: every format resolves to an exact instant, so input without an offset or zone is rejected; names of days, months and zones are English as the standards define them, never localised; output is the strictest form the standard defines; truncation (`numericDate`, the ASN.1 formats and `rfc5322` drop fractional seconds) is documented, not silent. Input that does not match fails with `CLOCK_INVALID_INPUT`, an unknown format with `CLOCK_UNSUPPORTED_OPERATION`, and an instant outside a format's range (such as `asn1UtcTime` after 2049) with `CLOCK_INVALID_INPUT`. Where a format names the weekday, it must agree with the date. RFC 850 two-digit years follow RFC 9110: a year more than 50 years after the clock's current year belongs to the previous century, so an injected `now()` makes this deterministic. Durations such as OAuth `expires_in` remain integer seconds added with `add`.
-
-### Proposed pattern additions (not implemented)
-
-For common human-entered and displayed formats such as `8/11/2026`, `08 Nov 2026` or `5:30 pm`, the pattern grammar gains:
-
-| Token | Meaning |
-|---|---|
-| `d`, `M`, `H` | Day, month or 24-hour hour, one or two digits |
-| `MMM`, `MMMM` | English month name, abbreviated or full |
-| `EEE`, `EEEE` | English weekday name; on parsing it must agree with the date |
-| `hh`, `h` | 12-hour hour, two digits or one-to-two digits; requires `a` |
-| `a` | `am` or `pm`, matched case-insensitively and written lower-case |
-
-Names in patterns are English because patterns are a fixed, locale-independent format; localised names are output only, through `format`. A pattern with both `HH` and `hh` is contradictory and fails with `CLOCK_INVALID_PATTERN`.
 
 ## Host passes
 

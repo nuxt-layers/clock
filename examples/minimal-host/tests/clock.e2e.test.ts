@@ -31,7 +31,7 @@ describe('Clock minimal host', async () => {
   })
 
   it('rejects an invalid mock preference before accepting its output', () => {
-    const broken = mockConfigurationAnswer({ datePattern: 'dd/MMM/yyyy' })
+    const broken = mockConfigurationAnswer({ datePattern: 'dd/MMMMM/yyyy' })
     const clock = createClock(broken)
     expect(() => clock.formatPattern(clock.parse('date', '2026-11-05'), broken.datePattern))
       .toThrowError('CLOCK_INVALID_PATTERN')
