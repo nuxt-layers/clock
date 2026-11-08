@@ -4,6 +4,7 @@
 
 ## 2026-11-08
 
+- Runtime compatibility: supported runtimes are Node.js 26.13+ (26.x) and current Chromium, Firefox and WebKit. CI tests both Node versions and checks that each browser hydrates the minimal host with exactly the server's Clock results. The polyfill is reached through `shared/temporal.ts`, and the design records when and how to move to native Temporal.
 - Contract checked against the code: purity of `parseInterchange`, system-clock exports from `/core`, `format` defaults, pattern and interchange input limits, and fixed table formatting.
 - Pattern grammar: unpadded `d`, `M` and `H`; English month (`MMM`, `MMMM`) and weekday (`EEE`, `EEEE`) names read in any letter case, with weekdays checked against the date; 12-hour `hh` and `h` with `am`/`pm`. `dd/MMM/yyyy`, previously invalid, is now valid. Seconds are optional in time patterns: `h:mm a` reads `5:30 pm` as `17:30:00`.
 - Added `parseInterchange` and `formatInterchange` for RFC 3339, JWT NumericDate, epoch milliseconds, HTTP-date (including the obsolete forms), RFC 5322, ISO 8601 basic, and X.509 UTCTime and GeneralizedTime, with tests from each standard.

@@ -11,13 +11,18 @@ permissions:
 jobs:
   source-and-local-host:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Supported runtimes: the minimum in package.json engines, and the latest Node 26.
+        node: ['26.13.0', '26']
     steps:
       - name: Check out candidate source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 26.13.0
+          node-version: ${{ matrix.node }}
       - name: Install Clock from its lockfile
         run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm install --frozen-lockfile
       - name: Test Clock core
@@ -34,6 +39,25 @@ jobs:
         run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host build
       - name: Typecheck minimal host
         run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host typecheck
+
+  browsers:
+    needs: source-and-local-host
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 26.13.0
+      - name: Install minimal host from its lockfile
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host install --frozen-lockfile
+      - name: Install Chromium, Firefox and WebKit
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host exec playwright install --with-deps chromium firefox webkit
+      - name: Build minimal host
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host build
+      - name: Hydrate identically in every supported browser
+        run: npm exec --yes --package=corepack@0.36.0 -- corepack pnpm --dir examples/minimal-host test:browsers chromium firefox webkit
 
   upstream-consumer:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'

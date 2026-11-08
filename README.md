@@ -42,9 +42,11 @@ pnpm --dir examples/minimal-host install --frozen-lockfile
 pnpm --dir examples/minimal-host test
 pnpm --dir examples/minimal-host build
 pnpm --dir examples/minimal-host typecheck
+pnpm --dir examples/minimal-host exec playwright install chromium firefox webkit
+pnpm --dir examples/minimal-host test:browsers chromium firefox webkit
 ```
 
-The Quality workflow runs the same checks on every pull request, and also tests an independent Git-backed consumer of the accepted `master`.
+The Quality workflow runs the same checks on every pull request, on each supported Node.js version and browser, and also tests an independent Git-backed consumer of the accepted `master`.
 
 ## Security and privacy
 

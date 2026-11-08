@@ -67,6 +67,25 @@ The Nuxt host composition must fit ADR-0012's 50-line budget, including configur
 - Public entry points are `/core` for portable utilities, `/server` for Nitro and `useClock()` for Nuxt; the root is the Nuxt layer entry.
 - Public failures expose a stable `ClockError` shape. `isValid` returns a boolean instead of throwing for invalid user input.
 
+## Runtime compatibility
+
+| Runtime | Supported | Tested in CI |
+|---|---|---|
+| Node.js | 26.13 and later 26.x, as `package.json` `engines` states | Core tests, typecheck, minimal host tests, build and typecheck on 26.13.0 and the latest 26.x |
+| Browsers | Current Chromium, Firefox and WebKit | The built minimal host hydrates in each, with the browser set to `America/New_York` and `fr-FR` |
+
+The browser check renders a fixed set of Clock results on the server (nanosecond arithmetic, DST gaps and overlaps, a +14:00 zone, a leap day, patterns with names and the 12-hour clock, and interchange formats), then requires each browser to produce the same results during hydration, with no mismatch. Localised `format` output is excluded, because `Intl` wording may legitimately differ between engines. Results never depend on the browser's own time zone or locale.
+
+Other runtimes, such as Bun, Deno and edge workers, are not supported until added to this table and to CI.
+
+### Moving to native Temporal
+
+Clock uses `@js-temporal/polyfill` through one internal file, `shared/temporal.ts`; no Temporal type crosses the public contract, so the move changes no consumer. The CI logs report whether each tested runtime has native `Temporal`.
+
+1. **When:** native `Temporal` is present on the minimum supported Node.js and in all three browser engines.
+2. **How:** `shared/temporal.ts` exports the native `Temporal` instead of the polyfill, in one pull request that also removes the dependency.
+3. **Gate:** the core tests, interchange and pattern tests, minimal host tests and the browser check all pass unchanged. Any difference is fixed in Clock, not by changing the expected results.
+
 ## Open questions
 
-Runtime compatibility across environments and the move from `@js-temporal/polyfill` to native Temporal, and cross-environment time-zone data and precision, are tracked in [the plan](../PLAN.md). Until settled, Clock supports the Node.js version in `package.json` `engines`, and zone rules come from the runtime.
+Cross-environment time-zone data and precision are tracked in [the plan](../PLAN.md). Until settled, zone rules come from each runtime.
