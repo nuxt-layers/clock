@@ -5,6 +5,7 @@
 ## 2026-11-08
 
 - All planned work is complete, so `PLAN.md` is removed.
+- Contract: pattern operations and the host-side preference pattern are described as accepted, not proposed; the public `ClockSettings`, `PatternKind`, `PatternOptions`, `ClockErrorCode` and `ClockError` types are listed; configuration validation is stated to run at app initialisation on server and client.
 
 ## 2026-11-06
 
