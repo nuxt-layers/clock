@@ -6,7 +6,6 @@
 
 - [Consumer contract](CONTRACT.md) — public integration surface; the self-contained public integration interface.
 - [Design](docs/design.md) — capability decisions and boundaries.
-- [Plan](PLAN.md) — implementation and acceptance work.
 - [Resources](RESOURCES.md) — governing architecture at a verified revision.
 
 The layer uses a pure TypeScript core with thin Nuxt and Nitro integration. It will own neither application data nor persistence.
