@@ -1,6 +1,9 @@
 import { formatPattern, parsePattern } from './pattern'
 export { formatPattern, parsePattern } from './pattern'
 export type { PatternKind, PatternOptions } from './pattern'
+import { formatInterchange, parseInterchangeAt, type InterchangeFormat } from './interchange'
+export { formatInterchange }
+export type { InterchangeFormat }
 import { Temporal } from '@js-temporal/polyfill'
 
 export type Instant = string
@@ -205,10 +208,12 @@ export function createClock(settings: ClockSettings = {}, provider: ClockPort = 
         return fail('CLOCK_INVALID_INPUT')
       }
     },
-    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern,
+    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern, formatInterchange,
+    parseInterchange: (format: InterchangeFormat, input: string | number): Value => parseInterchangeAt(format, input, Number(now().slice(0, 4))),
     format: (v: Value, opts: DisplayOptions = {}) => format(v, { locale, hourCycle, ...opts, timeZone: opts.timeZone ?? timeZone }),
   })
 }
 const systemClock = createClock()
 export const now = systemClock.now
 export const today = systemClock.today
+export const parseInterchange = systemClock.parseInterchange
