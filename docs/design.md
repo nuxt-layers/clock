@@ -27,7 +27,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 2. Persist/transport canonical validated values; localised display strings are output only.
 3. Use IANA time zones, not fixed offsets, for civil-time rules. Preserve the distinction between calendar arithmetic and elapsed time.
 4. Reject ambiguous or nonexistent local time by default; provide an explicit resolution policy.
-5. Format using `Intl`; use Temporal semantics internally, with a compatible implementation for unsupported runtimes. No Temporal implementation types leak into the public contract.
+5. Format using `Intl`; use the runtime's native Temporal internally. No Temporal types leak into the public contract.
 6. Use server time for trusted decisions. Device time is suitable for display and local interactions, not enforcing security or deadlines.
 7. Avoid hydration differences: SSR uses stable host-specified locale and zone; any browser-resolved preference is introduced deliberately.
 8. Patterns are explicit and strict: fixed-width or explicitly unpadded numeric tokens, English month and weekday names and a 12-hour clock with `am`/`pm`, optional seconds (read as zero), quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Names are English so a pattern means the same in every locale; localised names come only from `format`. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
@@ -35,7 +35,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 
 ## Architecture
 
-- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). Its only package dependency is `@js-temporal/polyfill`.
+- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). It has no package dependencies: it uses the runtime's native `Temporal`, with types from TypeScript's `esnext.temporal` library.
 - **Nuxt integration:** `runtimeConfig.public.clock` defaults, `useClock()` and SSR-stable client configuration; no global mutable per-user settings. A plugin validates the defaults when the app initialises, on server and client, so invalid settings fail before rendering or hydration.
 - **Nitro integration:** `@nuxt-layers/clock/server` exposes `useServerClock()` to Nitro request handlers, with a fresh clock instance and optional injected provider.
 - **No presentation:** consumers build their own UI or use a separate UI capability.
@@ -78,14 +78,14 @@ The browser check renders a fixed set of Clock results on the server (nanosecond
 
 Other runtimes, such as Bun, Deno and edge workers, are not supported until added to this table and to CI.
 
-### Moving to native Temporal
+### Native Temporal
 
-Clock uses `@js-temporal/polyfill` through one internal file, `shared/temporal.ts`; no Temporal type crosses the public contract, so the move changes no consumer. The CI logs report whether each tested runtime has native `Temporal`.
+Clock uses the runtime's native `Temporal`; `shared/temporal.ts` checks that it exists before any module uses it. CI showed native `Temporal` on Node.js 26.13.0 and in Chromium 153, Firefox 155 and WebKit 26.6, so every supported runtime has it; the CI logs keep reporting it. On a runtime without it, importing Clock fails at once with an error naming the supported runtimes, rather than misbehaving later.
 
-1. **When:** native `Temporal` is present on the minimum supported Node.js and in all three browser engines.
-2. **How:** `shared/temporal.ts` exports the native `Temporal` instead of the polyfill, in one pull request that also removes the dependency.
-3. **Gate:** the core tests, interchange and pattern tests, minimal host tests and the browser check all pass unchanged. Any difference is fixed in Clock, not by changing the expected results.
+Types come from TypeScript 6's `esnext.temporal` library, so Clock has no Temporal dependency at all. Nuxt's generated `tsconfig` files include `ESNext`, which brings these types to consumers that typecheck Clock's source. TypeScript 7 is not used: it has no JavaScript API yet, which `vue-tsc` and `nuxt typecheck` need.
 
-## Open questions
+The move was gated on every suite and the browser check passing unchanged, which they did.
 
-Cross-environment time-zone data and precision are tracked in [the plan](../PLAN.md). Until settled, zone rules come from each runtime.
+### Time-zone data and precision
+
+`tests/runtime-assumptions.test.ts` checks the assumptions the contract documents: IANA time-zone data of release 2024b or later (using rule changes from 2023 to 2024b in Kazakhstan, Paraguay and Greenland, plus London, São Paulo, +14:00, +05:45 and Lord Howe's half-hour daylight saving), zone names kept as given, nanosecond precision through every operation, millisecond system-clock reads and the 0001–9999 year range. The browser check repeats the newest rule changes in every browser.

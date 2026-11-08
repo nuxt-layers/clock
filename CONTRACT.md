@@ -6,7 +6,7 @@
 
 ## Install
 
-Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. Supported runtimes are Node.js 26.13 and later 26.x on the server, and current Chromium, Firefox and WebKit in the browser; CI tests each. Results do not depend on the browser's own time zone or locale. The accepted `master` is the current development integration target.
+Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. Hosts that typecheck need TypeScript 6 or later, whose `ESNext` library includes the `Temporal` types; Nuxt's generated `tsconfig` already includes `ESNext`. TypeScript 7 cannot yet run `nuxt typecheck` or `vue-tsc`. Supported runtimes are Node.js 26.13 and later 26.x on the server, and current Chromium, Firefox and WebKit in the browser; CI tests each. Results do not depend on the browser's own time zone or locale. Clock uses the runtime's native `Temporal`; on a runtime without it, importing Clock throws an `Error` naming the supported runtimes. This is the one failure that is not a `ClockError`, because it happens before any operation can run. The accepted `master` is the current development integration target.
 
 Host Nuxt configuration (the package root is the layer entry):
 
@@ -227,7 +227,8 @@ Functions are pure except `now`, `today` and `parseInterchange`, which read the 
 - ISO calendar dates use the proleptic Gregorian calendar, with four-digit years from `0001` to `9999`. Leap seconds (`:60`) are rejected.
 - An instant always has an explicit `Z`; a zoned value must contain both a numeric offset and bracketed IANA identifier, and its offset must be valid for that zone at the represented instant.
 - `compatible` follows Temporal-style resolution: choose the earlier offset for an overlap, or advance by the size of the gap for a nonexistent local time. `earlier`/`later` explicitly choose the corresponding possible instant or gap-side adjustment.
-- The implementation may rely on the host runtime's IANA time-zone data. Historical zone rules can vary between runtime versions; cross-runtime exactness requires the same zone-data revision.
+- Zone rules come from the runtime's IANA time-zone data, which must be release 2024b or later. Every supported runtime meets this; `tests/runtime-assumptions.test.ts` fails on a runtime that does not, and the browser check requires each browser to agree with the server. A zone name is kept exactly as given, so a link such as `Europe/Kiev` is not rewritten to `Europe/Kyiv`. Rules published after a runtime's data release apply only once that runtime is updated.
+- Precision: values keep up to nine fractional-second digits through parsing, zone conversion, arithmetic, DST resolution and `numericDate`; two values one nanosecond apart compare as different. The default system clock reads milliseconds.
 
 
 **Error contract:** failed operations throw `ClockError` with stable `code` and serialisable `params` fields; `isValid()` returns a boolean. Provider exceptions, missing provider values and invalid provider instants map to `CLOCK_INVALID_INPUT`. Invalid settings map to `CLOCK_INVALID_CONFIG`; invalid zones map to `CLOCK_INVALID_TIME_ZONE`. The supported canonical year range also applies to generated conversion and arithmetic results. Raw implementation exceptions do not cross the public API.

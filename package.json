@@ -15,15 +15,12 @@
     "./server": "./server/index.ts"
   },
   "scripts": {
-    "test": "vitest run tests/core.test.ts tests/interchange.test.ts tests/pattern-additions.test.ts",
+    "test": "vitest run tests/core.test.ts tests/interchange.test.ts tests/pattern-additions.test.ts tests/runtime-assumptions.test.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:host": "pnpm --dir examples/minimal-host typecheck"
   },
-  "dependencies": {
-    "@js-temporal/polyfill": "0.5.1"
-  },
   "devDependencies": {
-    "typescript": "5.9.3",
+    "typescript": "6.0.3",
     "vitest": "^4.0.0",
     "nuxt": "^4.6.0"
   },
