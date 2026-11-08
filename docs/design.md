@@ -30,7 +30,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 5. Format using `Intl`; use Temporal semantics internally, with a compatible implementation for unsupported runtimes. No Temporal implementation types leak into the public contract.
 6. Use server time for trusted decisions. Device time is suitable for display and local interactions, not enforcing security or deadlines.
 7. Avoid hydration differences: SSR uses stable host-specified locale and zone; any browser-resolved preference is introduced deliberately.
-8. Patterns are explicit and strict: fixed-width or explicitly unpadded numeric tokens, English month and weekday names and a 12-hour clock with `am`/`pm`, quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Names are English so a pattern means the same in every locale; localised names come only from `format`. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
+8. Patterns are explicit and strict: fixed-width or explicitly unpadded numeric tokens, English month and weekday names and a 12-hour clock with `am`/`pm`, optional seconds (read as zero), quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Names are English so a pattern means the same in every locale; localised names come only from `format`. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
 9. Preferences belong to the host. Configuration, when installed, owns selectable preferences, their scope and precedence; the host passes effective values into Clock as plain data. Clock remains the only interpreter of pattern syntax and never queries Configuration.
 
 ## Architecture

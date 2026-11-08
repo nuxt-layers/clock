@@ -82,8 +82,10 @@ function compile(kind: PatternKind, pattern: string) {
   if (twelve !== seen.has('meridiem')) return invalidPattern()
   const date = ['year', 'month', 'day'] as const
   const time = ['hour', 'minute', 'second'] as const
-  const required = kind === 'date' ? date : kind === 'time' ? time : [...date, ...time]
+  // Seconds are optional; fractions need seconds.
+  const required = kind === 'date' ? date : kind === 'time' ? ['hour', 'minute'] as const : [...date, 'hour', 'minute'] as const
   if (required.some(field => !seen.has(field))) return invalidPattern()
+  if (seen.has('fraction') && !seen.has('second')) return invalidPattern()
   if (kind === 'date' && [...time, 'fraction', 'meridiem'].some(field => seen.has(field as Field))) return invalidPattern()
   if (kind === 'time' && [...date, 'weekday'].some(field => seen.has(field as Field))) return invalidPattern()
   const expression = '^' + parts.map(part => 'literal' in part ? escapeRegex(part.literal) : source(part)).join('') + '$'
@@ -124,7 +126,7 @@ export function parsePattern(kind: PatternKind, input: string, pattern: string, 
   const two = (v?: string) => v === undefined ? v : v.padStart(2, '0')
   const year = compiled.hasShortYear ? String(century! + Number(fields.year)).padStart(4, '0') : fields.year
   const date = `${year}-${two(fields.month)}-${two(fields.day)}`
-  const time = `${two(fields.hour)}:${fields.minute}:${fields.second}${fields.fraction === undefined ? '' : '.' + fields.fraction}`
+  const time = `${two(fields.hour)}:${fields.minute}:${fields.second ?? '00'}${fields.fraction === undefined ? '' : '.' + fields.fraction}`
   const value = parse(kind, kind === 'date' ? date : kind === 'time' ? time : date + 'T' + time)
   if (fields.weekday !== undefined && Temporal.PlainDate.from(date).dayOfWeek !== Number(fields.weekday)) return invalidInput()
   return value

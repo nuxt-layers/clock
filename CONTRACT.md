@@ -85,9 +85,9 @@ Rules:
 - Separators `/`, `-`, `:`, `.`, `,`, spaces and `T` are literal and case-sensitive. Any other alphabetic text must be single-quoted, with `''` for a quote; quoted text is case-sensitive too.
 - A field may appear once. `HH` with `hh`, `h` without `a`, and `a` without `h` or `hh` are contradictory.
 - An unpadded token (`M`, `d`, `H`, `h`) may not sit directly next to another numeric token, as in `dMyyyy`, because the digits could not be split unambiguously.
-- `date` requires year, month and day and allows a weekday; `time` requires hour, minute and second and allows `a` and fractions; `localDateTime` requires both. A time therefore always includes seconds: `h:mm:ss a` reads `5:30:00 pm`, but `h:mm a` is incomplete.
+- `date` requires year, month and day and allows a weekday; `time` requires hour and minute and allows seconds, fractions and `a`; `localDateTime` requires both. Seconds are optional: a pattern without them reads as zero seconds (`h:mm a` reads `5:30 pm` as `17:30:00`) and writes without them, dropping any seconds as presentation only. Fractions require seconds.
 - Names are English, because a pattern is a fixed, locale-independent format; localised names are output only, through `format`.
-- No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding or current-year pivot.
+- No automatic pattern detection, trimming, rollover or inferred zones, and no missing-field defaults other than zero seconds. `yy` never uses a sliding or current-year pivot.
 
 A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These codes are part of the public `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns, including those with names, unpadded fields and the 12-hour clock, round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing and formatting; use explicit canonical parsing and zone conversion.
 

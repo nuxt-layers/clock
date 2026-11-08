@@ -62,6 +62,23 @@ describe('12-hour clock', () => {
   })
 })
 
+describe('times without seconds', () => {
+  it('reads hours and minutes as zero seconds', () => {
+    expect(parsePattern('time', '5:30 pm', 'h:mm a').value).toBe('17:30:00')
+    expect(parsePattern('time', '17:30', 'HH:mm').value).toBe('17:30:00')
+    expect(parsePattern('localDateTime', '8 Nov 2026 09:15', 'd MMM yyyy HH:mm').value).toBe('2026-11-08T09:15:00')
+  })
+  it('writes without seconds, dropping them as presentation only', () => {
+    expect(formatPattern(parse('time', '17:05:09'), 'h:mm a')).toBe('5:05 pm')
+    expect(formatPattern(evening, 'dd/MM/yyyy HH:mm')).toBe('08/11/2026 17:05')
+  })
+  it('still requires hours and minutes, and seconds for fractions', () => {
+    const time = parse('time', '17:00:00')
+    for (const pattern of ['HH', 'h a', 'HH:mm.SSS', 'mm:ss'])
+      expect(code(() => formatPattern(time, pattern))).toBe('CLOCK_INVALID_PATTERN')
+  })
+})
+
 describe('kind rules for the new tokens', () => {
   it('rejects weekdays in time patterns and am/pm in date patterns', () => {
     expect(code(() => formatPattern(parse('time', '17:00:00'), 'EEE HH:mm:ss'))).toBe('CLOCK_INVALID_PATTERN')
