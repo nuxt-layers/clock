@@ -4,6 +4,7 @@
 
 ## 2026-11-08
 
+- Clock uses native Temporal on every supported runtime. `@js-temporal/polyfill` now supplies type definitions only and is never loaded or bundled; the minimal host's server output shrank from 3.77 MB to 3.4 MB. Results are unchanged: all tests and the browser check pass as before.
 - CI: `actions/checkout` v7.0.1 and `actions/setup-node` v7.1.0, pinned by commit, replacing versions that ran on the deprecated Node.js 20 Actions runtime.
 - Runtime compatibility: supported runtimes are Node.js 26.13+ (26.x) and current Chromium, Firefox and WebKit. CI tests both Node versions and checks that each browser hydrates the minimal host with exactly the server's Clock results. The polyfill is reached through `shared/temporal.ts`, and the design records when and how to move to native Temporal.
 - Contract checked against the code: purity of `parseInterchange`, system-clock exports from `/core`, `format` defaults, pattern and interchange input limits, and fixed table formatting.

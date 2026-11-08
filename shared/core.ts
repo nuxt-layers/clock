@@ -4,7 +4,7 @@ export type { PatternKind, PatternOptions } from './pattern'
 import { formatInterchange, parseInterchangeAt, type InterchangeFormat } from './interchange'
 export { formatInterchange }
 export type { InterchangeFormat }
-import { Temporal } from './temporal'
+import { Temporal, type TemporalTypes } from './temporal'
 
 export type Instant = string
 export type CalendarDate = string
@@ -147,11 +147,11 @@ export function compare(a: Value, b: Value): -1 | 0 | 1 {
     const y = object(b.kind, b.value)!
     let n: number
     switch (a.kind) {
-      case 'date': n = Temporal.PlainDate.compare(x as Temporal.PlainDate, y as Temporal.PlainDate); break
-      case 'time': n = Temporal.PlainTime.compare(x as Temporal.PlainTime, y as Temporal.PlainTime); break
-      case 'instant': n = Temporal.Instant.compare(x as Temporal.Instant, y as Temporal.Instant); break
-      case 'localDateTime': n = Temporal.PlainDateTime.compare(x as Temporal.PlainDateTime, y as Temporal.PlainDateTime); break
-      case 'zonedDateTime': n = Temporal.ZonedDateTime.compare(x as Temporal.ZonedDateTime, y as Temporal.ZonedDateTime)
+      case 'date': n = Temporal.PlainDate.compare(x as TemporalTypes.PlainDate, y as TemporalTypes.PlainDate); break
+      case 'time': n = Temporal.PlainTime.compare(x as TemporalTypes.PlainTime, y as TemporalTypes.PlainTime); break
+      case 'instant': n = Temporal.Instant.compare(x as TemporalTypes.Instant, y as TemporalTypes.Instant); break
+      case 'localDateTime': n = Temporal.PlainDateTime.compare(x as TemporalTypes.PlainDateTime, y as TemporalTypes.PlainDateTime); break
+      case 'zonedDateTime': n = Temporal.ZonedDateTime.compare(x as TemporalTypes.ZonedDateTime, y as TemporalTypes.ZonedDateTime)
     }
     return Math.sign(n) as -1 | 0 | 1
   } catch (e) {

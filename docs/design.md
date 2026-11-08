@@ -27,7 +27,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 2. Persist/transport canonical validated values; localised display strings are output only.
 3. Use IANA time zones, not fixed offsets, for civil-time rules. Preserve the distinction between calendar arithmetic and elapsed time.
 4. Reject ambiguous or nonexistent local time by default; provide an explicit resolution policy.
-5. Format using `Intl`; use Temporal semantics internally, with a compatible implementation for unsupported runtimes. No Temporal implementation types leak into the public contract.
+5. Format using `Intl`; use the runtime's native Temporal internally. No Temporal types leak into the public contract.
 6. Use server time for trusted decisions. Device time is suitable for display and local interactions, not enforcing security or deadlines.
 7. Avoid hydration differences: SSR uses stable host-specified locale and zone; any browser-resolved preference is introduced deliberately.
 8. Patterns are explicit and strict: fixed-width or explicitly unpadded numeric tokens, English month and weekday names and a 12-hour clock with `am`/`pm`, optional seconds (read as zero), quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Names are English so a pattern means the same in every locale; localised names come only from `format`. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
@@ -35,7 +35,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 
 ## Architecture
 
-- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). Its only package dependency is `@js-temporal/polyfill`.
+- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). It loads no runtime packages: `@js-temporal/polyfill` is a dependency for its TypeScript type definitions only, and is never loaded or bundled.
 - **Nuxt integration:** `runtimeConfig.public.clock` defaults, `useClock()` and SSR-stable client configuration; no global mutable per-user settings. A plugin validates the defaults when the app initialises, on server and client, so invalid settings fail before rendering or hydration.
 - **Nitro integration:** `@nuxt-layers/clock/server` exposes `useServerClock()` to Nitro request handlers, with a fresh clock instance and optional injected provider.
 - **No presentation:** consumers build their own UI or use a separate UI capability.
@@ -78,13 +78,13 @@ The browser check renders a fixed set of Clock results on the server (nanosecond
 
 Other runtimes, such as Bun, Deno and edge workers, are not supported until added to this table and to CI.
 
-### Moving to native Temporal
+### Native Temporal
 
-Clock uses `@js-temporal/polyfill` through one internal file, `shared/temporal.ts`; no Temporal type crosses the public contract, so the move changes no consumer. The CI logs report whether each tested runtime has native `Temporal`.
+Clock uses the runtime's native `Temporal`, through one internal file, `shared/temporal.ts`. CI showed native `Temporal` on Node.js 26.13.0 and in Chromium 153, Firefox 155 and WebKit 26.6, so every supported runtime has it; the CI logs keep reporting it. On a runtime without it, importing Clock fails at once with an error naming the supported runtimes, rather than misbehaving later.
 
-1. **When:** native `Temporal` is present on the minimum supported Node.js and in all three browser engines.
-2. **How:** `shared/temporal.ts` exports the native `Temporal` instead of the polyfill, in one pull request that also removes the dependency.
-3. **Gate:** the core tests, interchange and pattern tests, minimal host tests and the browser check all pass unchanged. Any difference is fixed in Clock, not by changing the expected results.
+`@js-temporal/polyfill` remains a dependency only for its TypeScript type definitions, which follow the same specification, because TypeScript does not yet ship Temporal types and consumers typecheck Clock's source. It is imported with `import type`, so none of its code runs or reaches a bundle. Replacing it with TypeScript's own types, once they exist, changes only `shared/temporal.ts`.
+
+The move was gated on every suite and the browser check passing unchanged, which they did.
 
 ## Open questions
 
