@@ -6,7 +6,8 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "typecheck": "nuxt typecheck",
-    "test": "nuxt prepare && vitest run"
+    "test": "nuxt prepare && vitest run",
+    "test:browsers": "node tests/browsers.mjs"
   },
   "dependencies": {
     "@nuxt-layers/clock": "file:../..",
@@ -16,6 +17,7 @@
     "@nuxt/test-utils": "^4.0.0",
     "vitest": "^4.0.0",
     "typescript": "5.9.3",
-    "vue-tsc": "3.3.13"
+    "vue-tsc": "3.3.13",
+    "playwright": "1.63.0"
   }
 }

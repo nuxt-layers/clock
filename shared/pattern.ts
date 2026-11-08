@@ -1,4 +1,4 @@
-import { Temporal } from '@js-temporal/polyfill'
+import { Temporal } from './temporal'
 import { ClockError, parse, type Value } from './core'
 
 export type PatternKind = 'date' | 'time' | 'localDateTime'

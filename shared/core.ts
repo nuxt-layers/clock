@@ -4,7 +4,7 @@ export type { PatternKind, PatternOptions } from './pattern'
 import { formatInterchange, parseInterchangeAt, type InterchangeFormat } from './interchange'
 export { formatInterchange }
 export type { InterchangeFormat }
-import { Temporal } from '@js-temporal/polyfill'
+import { Temporal } from './temporal'
 
 export type Instant = string
 export type CalendarDate = string

@@ -6,7 +6,7 @@
 
 ## Install
 
-Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. The accepted `master` is the current development integration target.
+Package: `@nuxt-layers/clock` (Git-backed dependency resolving the latest accepted `master` during development; commit resolution recorded in the host lockfile). Nuxt 4.6+ is required. Supported runtimes are Node.js 26.13 and later 26.x on the server, and current Chromium, Firefox and WebKit in the browser; CI tests each. Results do not depend on the browser's own time zone or locale. The accepted `master` is the current development integration target.
 
 Host Nuxt configuration (the package root is the layer entry):
 
