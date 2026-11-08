@@ -71,7 +71,7 @@ The Nuxt host composition must fit ADR-0012's 50-line budget, including configur
 
 | Runtime | Supported | Tested in CI |
 |---|---|---|
-| Node.js | 26.13 and later 26.x, as `package.json` `engines` states | Core tests, typecheck, minimal host tests, build and typecheck on 26.13.0 and the latest 26.x |
+| Node.js | 26.13 or later, as `package.json` `engines` states; 26.13 is the first version Clock's native `Temporal` requirement allows ([ADR-0013](../RESOURCES.md) rule 3) | Core tests, typecheck, minimal host tests, build and typecheck on 26.13.0 and the latest 26.x |
 | Browsers | Current Chromium, Firefox and WebKit | The built minimal host hydrates in each, with the browser set to `America/New_York` and `fr-FR` |
 
 The browser check renders a fixed set of Clock results on the server (nanosecond arithmetic, DST gaps and overlaps, a +14:00 zone, a leap day, patterns with names and the 12-hour clock, and interchange formats), then requires each browser to produce the same results during hydration, with no mismatch. Localised `format` output is excluded, because `Intl` wording may legitimately differ between engines. Results never depend on the browser's own time zone or locale.
