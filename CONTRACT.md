@@ -31,15 +31,15 @@ The host need not write adapters or register HTTP endpoints for the capability. 
 | `runtimeConfig.public.clock.timeZone` | `UTC` | IANA time zone for calendar operations and default presentation |
 | `runtimeConfig.public.clock.hourCycle` | `h23` | Hour-cycle preference for localised output (`h11`, `h12`, `h23`, `h24`) |
 
-A caller may override locale, time zone and hour cycle per clock instance or formatting call. Invalid configuration fails at start-up with `CLOCK_INVALID_CONFIG`. No environment variables, secrets or network services are required.
+A caller may override locale, time zone and hour cycle per clock instance or formatting call. Invalid configuration fails with `CLOCK_INVALID_CONFIG` when the Nuxt app initialises, on both the server and the client, so a bad value breaks hydration as well as SSR. No environment variables, secrets or network services are required.
 
 The host resolves user preferences, when available, and passes them as explicit overrides. The layer never looks up identity, profile or tenant records. Browser time-zone detection must be an explicit opt-in at the presentation boundary; it cannot silently change SSR output.
 
-### Proposed configuration-supplied presentation preferences (not implemented)
+### Host-supplied presentation preferences
 
 **Boundary:** Configuration owns the selected preferences; Clock owns their interpretation and validation. Clock does **not** query Configuration, depend on IAM, or persist values. The composition host reads effective settings and passes them explicitly into Clock or its presentation boundary. Clock remains usable without Configuration, with its existing `en-GB`, `UTC` and `h23` defaults.
 
-Proposed effective preference values for the host/Clock boundary:
+Clock reads no preference settings beyond `locale`, `timeZone` and `hourCycle`. The host owns this shape and passes its values into Clock: the first three as `ClockSettings` overrides, the patterns as arguments to `formatPattern` and `parsePattern`. Clock does not export this type; the minimal host's consumer tests use it with mocked Configuration values:
 
 ```ts
 type ClockPresentationPreferences = {
@@ -52,22 +52,18 @@ type ClockPresentationPreferences = {
 }
 ```
 
-Proposed Configuration keys are `clock.locale`, `clock.time-zone`, `clock.hour-cycle`, `clock.date-pattern`, `clock.time-pattern`, `clock.date-time-pattern`. They are proposals for host-declared settings, **not** existing built-in Configuration keys. Proposed host-declared defaults: `en-GB`, `UTC`, `h23`, `dd/MM/yyyy`, `HH:mm:ss`, `dd/MM/yyyy HH:mm:ss` respectively. An application without Configuration may supply the same values directly. Patterns control display or explicitly patterned input only: never canonical persistence formats.
+Suggested Configuration keys are `clock.locale`, `clock.time-zone`, `clock.hour-cycle`, `clock.date-pattern`, `clock.time-pattern`, `clock.date-time-pattern`. They are for the host to declare; they are **not** built-in Configuration keys. Suggested defaults: `en-GB`, `UTC`, `h23`, `dd/MM/yyyy`, `HH:mm:ss`, `dd/MM/yyyy HH:mm:ss` respectively. An application without Configuration may supply the same values directly. Patterns control display or explicitly patterned input only: never canonical persistence formats.
 
 The **host**, not Clock, resolves scope, precedence, account permissions and SSR visibility. It should obtain effective values server-side, pass only viewer-authorised presentation values to the browser, and use the same resolved values for the initial SSR render and hydration. Never put another account's preferences into shared or public runtime configuration. Host tests should mock the six resolved values, a missing/invalid preference and scoped overrides; no Configuration installation is needed in Clock's minimal host.
 
 ### Explicit pattern API
 
-The existing `parse(kind, input)` and `format(value, options?)` remain unchanged. Additional public operations:
+Alongside `parse(kind, input)` and `format(value, options?)`, every clock instance and the `/core` entry provide:
 
 ```ts
+// PatternKind and PatternOptions are listed with the other types below
 formatPattern(value: Value, pattern: string): string
-parsePattern(
-  kind: 'date' | 'time' | 'localDateTime',
-  input: string,
-  pattern: string,
-  options?: { century?: number },
-): Value
+parsePattern(kind: PatternKind, input: string, pattern: string, options?: PatternOptions): Value
 ```
 
 Pattern parsing and formatting share a case-sensitive token grammar: `yyyy` (four-digit year), `yy` (two digits, requiring an explicit `century` such as `2000`), `MM` (month), `dd` (day), `HH` (24-hour clock), `mm` (minutes), `ss` (seconds), and `S`/`SS`/`SSS` (one/two/three fractional-second digits). Numeric fields have exact widths. Separators such as `/`, `-`, `:`, spaces and `T` are literal; alphabetic literal text must be single-quoted, with `''` denoting an escaped quote. Unsupported, repeated, contradictory or incomplete token sets are invalid. Date requires year/month/day; time requires hour/minute/second; localDateTime requires both. No automatic pattern detection, trimming, rollover, missing-field defaults or inferred zones. `yy` never uses a sliding/current-year pivot.
@@ -84,7 +80,7 @@ For deterministic tests or trusted host integration, a host may supply the exist
 type ClockPort = { now(): string } // this layer returns UTC ISO 8601, e.g. 2026-11-05T14:30:00.000Z
 ```
 
-`now()` is synchronous and returns a valid instant. It is scoped per application/server request or test invocation, never a mutable global shared across requests. This port's call shape remains `now()`; the return-value definition here is proposed for this capability and must not be presumed to constrain other existing consumers.
+`now()` is synchronous and returns a valid instant. It is scoped per application/server request or test invocation, never a mutable global shared across requests. The return-value definition here applies to Clock's use of the port; it does not constrain other capabilities that use the same shape.
 
 ## Client and server functions
 
@@ -105,7 +101,7 @@ const clock = useServerClock()
 const issuedAt = clock.now()
 ```
 
-Inject deterministic time with `createClock(settings?, { now: () => '2026-11-05T14:30:00.000Z' })` or the optional provider argument on either helper. Provider injection is confined to that instance; no global mutation.
+Inject deterministic time with `createClock(settings?: ClockSettings, { now: () => '2026-11-05T14:30:00.000Z' })` or the optional provider argument on either helper. Provider injection is confined to that instance; no global mutation.
 
 Canonical value types are strings, not JavaScript `Date` objects:
 
@@ -128,7 +124,20 @@ type Disambiguation = 'reject' | 'earlier' | 'later' | 'compatible'
 type DateUnits = { years?: number; months?: number; weeks?: number; days?: number }
 type TimeUnits = { hours?: number; minutes?: number; seconds?: number }
 type ArithmeticOptions = { disambiguation?: Disambiguation }
+type ClockSettings = { locale?: string; timeZone?: string; hourCycle?: 'h11' | 'h12' | 'h23' | 'h24' }
+type ClockPort = { now(): string }
+type PatternKind = 'date' | 'time' | 'localDateTime'
+type PatternOptions = { century?: number }
+type ClockErrorCode =
+  | 'CLOCK_INVALID_CONFIG' | 'CLOCK_INVALID_PATTERN' | 'CLOCK_INVALID_INPUT' | 'CLOCK_INVALID_TIME_ZONE'
+  | 'CLOCK_AMBIGUOUS_LOCAL_TIME' | 'CLOCK_NONEXISTENT_LOCAL_TIME' | 'CLOCK_INCOMPATIBLE_TYPES' | 'CLOCK_UNSUPPORTED_OPERATION'
+class ClockError extends Error {
+  readonly code: ClockErrorCode
+  readonly params: Record<string, string | number>
+}
 ```
+
+`useClock`, `useServerClock` and `createClock` take `ClockSettings` overrides and an optional `ClockPort`, and return a frozen object with the operations below.
 
 Public operations, exposed through the same semantic service on client and server:
 

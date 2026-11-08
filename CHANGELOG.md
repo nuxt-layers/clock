@@ -2,6 +2,16 @@
 
 > **In short:** material design and contract changes, newest first.
 
+## 2026-11-08
+
+- All planned work is complete, so `PLAN.md` is removed.
+- Contract: pattern operations and the host-side preference pattern are described as accepted, not proposed; the public `ClockSettings`, `PatternKind`, `PatternOptions`, `ClockErrorCode` and `ClockError` types are listed; configuration validation is stated to run at app initialisation on server and client.
+
+## 2026-11-06
+
+- Added strict, explicit pattern formatting and parsing (`yyyy`, `yy` with an explicit century, `MM`, `dd`, `HH`, `mm`, `ss`, fractional seconds and quoted literals), with no pattern detection, rollover or inferred zones.
+- Specified optional host-supplied presentation preferences from Configuration: Clock interprets and validates them but never queries Configuration; consumer tests use mocked resolved settings.
+
 ## 2026-11-05
 
 - Accepted the development consumer integration after successful local and Git-backed CI tests, frozen installs, production builds, typechecks and composition-budget verification.
