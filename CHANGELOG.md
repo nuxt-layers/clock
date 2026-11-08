@@ -4,6 +4,7 @@
 
 ## 2026-11-08
 
+- Audit fixes: architecture rules re-pinned to the revision with ADR-0012 §2a and the ADR-0013 TypeScript baseline; supported Node.js stated as 26.13 or later, matching `engines`; minimal host README describes the browser check and drops a stale status line; `pnpm test` runs every file in `tests/`.
 - README: protocol date formats added to what Clock owns, matching the architecture-rules catalogue.
 - Runtime assumptions are tested: IANA time-zone data 2024b or later, zone names kept as given, nanosecond precision, millisecond system-clock reads and the year range (`tests/runtime-assumptions.test.ts`); the browser check covers the newest zone rules. All planned work is complete, so `PLAN.md` is removed.
 - Clock uses native Temporal on every supported runtime and no longer depends on `@js-temporal/polyfill`; types come from TypeScript 6.0.3's `esnext.temporal` library. TypeScript is 6.0.3 and `vue-tsc` 3.3.14 in Clock and the minimal host; TypeScript 7 is not used because `vue-tsc` and `nuxt typecheck` need its JavaScript API, which 7 does not have yet. The minimal host's server output shrank from 3.77 MB to 3.4 MB. Results are unchanged: all tests and the browser check pass as before.
