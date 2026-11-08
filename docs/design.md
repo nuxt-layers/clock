@@ -30,7 +30,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 5. Format using `Intl`; use Temporal semantics internally, with a compatible implementation for unsupported runtimes. No Temporal implementation types leak into the public contract.
 6. Use server time for trusted decisions. Device time is suitable for display and local interactions, not enforcing security or deadlines.
 7. Avoid hydration differences: SSR uses stable host-specified locale and zone; any browser-resolved preference is introduced deliberately.
-8. Patterns are explicit and strict: numeric tokens of exact width, quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
+8. Patterns are explicit and strict: fixed-width or explicitly unpadded numeric tokens, English month and weekday names and a 12-hour clock with `am`/`pm`, optional seconds (read as zero), quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Names are English so a pattern means the same in every locale; localised names come only from `format`. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
 9. Preferences belong to the host. Configuration, when installed, owns selectable preferences, their scope and precedence; the host passes effective values into Clock as plain data. Clock remains the only interpreter of pattern syntax and never queries Configuration.
 
 ## Architecture
@@ -57,7 +57,7 @@ The Nuxt host composition must fit ADR-0012's 50-line budget, including configur
 - Pure core importable without Nuxt; no runtime database, network or storage requirement.
 - Server-side and browser-side consumer tests using only `CONTRACT.md`.
 - No public export outside documented entry points; code and contract reconciled before acceptance.
-- Lossless patterns round-trip; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; `yy` without a valid century fails with `CLOCK_INVALID_CONFIG`.
+- Lossless patterns, including names, unpadded fields and the 12-hour clock, round-trip; parsed weekdays must agree with the date; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; `yy` without a valid century fails with `CLOCK_INVALID_CONFIG`.
 - Mocked host preferences (defaults, overrides and invalid values) render identically in SSR and after hydration.
 
 ## Interface decisions

@@ -200,7 +200,7 @@ describe('explicit pattern formatting and parsing', () => {
 
   it('rejects unsupported, duplicated or incomplete patterns', () => {
     const date = parse('date', '2026-11-05')
-    for (const pattern of ['dd/MMM/yyyy', 'dd/MM/yyyy dd', 'dd/MM', 'dd/MM/yyyy HH', "dd/MM/yyyy'bad", 'dd/MM/yyyy yyyy']) {
+    for (const pattern of ['dd/MMMMM/yyyy', 'dd/MM/yyyy dd', 'dd/MM', 'dd/MM/yyyy HH', "dd/MM/yyyy'bad", 'dd/MM/yyyy yyyy']) {
       expect(() => formatPattern(date, pattern)).toThrowError('CLOCK_INVALID_PATTERN')
     }
     expect(() => parsePattern('date', '05/11/2026', 'dd/MM/yyyy HH:mm:ss'))
