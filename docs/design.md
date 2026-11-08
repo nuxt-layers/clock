@@ -35,7 +35,7 @@ No dependency on another ecosystem capability is required. The host may supply l
 
 ## Architecture
 
-- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). It loads no runtime packages: `@js-temporal/polyfill` is a dependency for its TypeScript type definitions only, and is never loaded or bundled.
+- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). It has no package dependencies: it uses the runtime's native `Temporal`, with types from TypeScript's `esnext.temporal` library.
 - **Nuxt integration:** `runtimeConfig.public.clock` defaults, `useClock()` and SSR-stable client configuration; no global mutable per-user settings. A plugin validates the defaults when the app initialises, on server and client, so invalid settings fail before rendering or hydration.
 - **Nitro integration:** `@nuxt-layers/clock/server` exposes `useServerClock()` to Nitro request handlers, with a fresh clock instance and optional injected provider.
 - **No presentation:** consumers build their own UI or use a separate UI capability.
@@ -80,9 +80,9 @@ Other runtimes, such as Bun, Deno and edge workers, are not supported until adde
 
 ### Native Temporal
 
-Clock uses the runtime's native `Temporal`, through one internal file, `shared/temporal.ts`. CI showed native `Temporal` on Node.js 26.13.0 and in Chromium 153, Firefox 155 and WebKit 26.6, so every supported runtime has it; the CI logs keep reporting it. On a runtime without it, importing Clock fails at once with an error naming the supported runtimes, rather than misbehaving later.
+Clock uses the runtime's native `Temporal`; `shared/temporal.ts` checks that it exists before any module uses it. CI showed native `Temporal` on Node.js 26.13.0 and in Chromium 153, Firefox 155 and WebKit 26.6, so every supported runtime has it; the CI logs keep reporting it. On a runtime without it, importing Clock fails at once with an error naming the supported runtimes, rather than misbehaving later.
 
-`@js-temporal/polyfill` remains a dependency only for its TypeScript type definitions, which follow the same specification, because TypeScript does not yet ship Temporal types and consumers typecheck Clock's source. It is imported with `import type`, so none of its code runs or reaches a bundle. Replacing it with TypeScript's own types, once they exist, changes only `shared/temporal.ts`.
+Types come from TypeScript 6's `esnext.temporal` library, so Clock has no Temporal dependency at all. Nuxt's generated `tsconfig` files include `ESNext`, which brings these types to consumers that typecheck Clock's source. TypeScript 7 is not used: it has no JavaScript API yet, which `vue-tsc` and `nuxt typecheck` need.
 
 The move was gated on every suite and the browser check passing unchanged, which they did.
 
