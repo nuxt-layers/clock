@@ -70,9 +70,9 @@ Pattern parsing and formatting share a case-sensitive token grammar: `yyyy` (fou
 
 A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These codes are part of the public `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns must round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing and formatting; use explicit canonical parsing and zone conversion.
 
-### Proposed interchange formats (not implemented)
+### Interchange formats
 
-Protocols exchange instants in fixed machine formats that Clock's canonical strings do not cover. Two operations are proposed, separate from `parse` and `format`, so canonical parsing stays strict:
+Protocols exchange instants in fixed machine formats that Clock's canonical strings do not cover. Two operations, separate from `parse` and `format`, keep canonical parsing strict. Both are on every clock instance and the `/core` entry:
 
 ```ts
 type InterchangeFormat =
@@ -93,7 +93,7 @@ formatInterchange(value: Value, format: InterchangeFormat): string | number  // 
 | `asn1UtcTime` | RFC 5280 §4.1.2.5.1 | X.509 certificate validity before 2050 (mTLS, SAML signing) | `YYMMDDHHMMSSZ`, years `50`–`99` as 19xx and `00`–`49` as 20xx, fixed by the standard | The same, for 1950–2049 only |
 | `asn1GeneralizedTime` | RFC 5280 §4.1.2.5.2 | X.509 validity from 2050 | `YYYYMMDDHHMMSSZ`, no fractional seconds | The same |
 
-Rules: every format resolves to an exact instant, so input without an offset or zone is rejected; names of days, months and zones are English as the standards define them, never localised; output is the strictest form the standard defines; truncation (`numericDate`, the ASN.1 formats and `rfc5322` drop fractional seconds) is documented, not silent. Input that does not match fails with `CLOCK_INVALID_INPUT`, an unknown format with `CLOCK_UNSUPPORTED_OPERATION`, and an instant outside a format's range (such as `asn1UtcTime` after 2049) with `CLOCK_INVALID_INPUT`. Durations such as OAuth `expires_in` remain integer seconds added with `add`.
+Rules: every format resolves to an exact instant, so input without an offset or zone is rejected; names of days, months and zones are English as the standards define them, never localised; output is the strictest form the standard defines; truncation (`numericDate`, the ASN.1 formats and `rfc5322` drop fractional seconds) is documented, not silent. Input that does not match fails with `CLOCK_INVALID_INPUT`, an unknown format with `CLOCK_UNSUPPORTED_OPERATION`, and an instant outside a format's range (such as `asn1UtcTime` after 2049) with `CLOCK_INVALID_INPUT`. Where a format names the weekday, it must agree with the date. RFC 850 two-digit years follow RFC 9110: a year more than 50 years after the clock's current year belongs to the previous century, so an injected `now()` makes this deterministic. Durations such as OAuth `expires_in` remain integer seconds added with `add`.
 
 ### Proposed pattern additions (not implemented)
 
@@ -167,6 +167,9 @@ type ClockSettings = { locale?: string; timeZone?: string; hourCycle?: 'h11' | '
 type ClockPort = { now(): string }
 type PatternKind = 'date' | 'time' | 'localDateTime'
 type PatternOptions = { century?: number }
+type InterchangeFormat =
+  | 'rfc3339' | 'numericDate' | 'epochMilliseconds' | 'httpDate'
+  | 'rfc5322' | 'iso8601Basic' | 'asn1UtcTime' | 'asn1GeneralizedTime'
 type ClockErrorCode =
   | 'CLOCK_INVALID_CONFIG' | 'CLOCK_INVALID_PATTERN' | 'CLOCK_INVALID_INPUT' | 'CLOCK_INVALID_TIME_ZONE'
   | 'CLOCK_AMBIGUOUS_LOCAL_TIME' | 'CLOCK_NONEXISTENT_LOCAL_TIME' | 'CLOCK_INCOMPATIBLE_TYPES' | 'CLOCK_UNSUPPORTED_OPERATION'
@@ -187,6 +190,8 @@ Public operations, exposed through the same semantic service on client and serve
 | Strict parsing | `parse(kind: TemporalKind, input: string): Value` | Accepts documented canonical formats only; rejects ambiguity |
 | Pattern parsing | `parsePattern(kind: PatternKind, input: string, pattern: string, options?: PatternOptions): Value` | Explicit strict patterns for dates, times and local date-times |
 | Pattern formatting | `formatPattern(value: Value, pattern: string): string` | Deterministic numeric presentation, including intentionally lossy patterns |
+| Interchange parsing | `parseInterchange(format: InterchangeFormat, input: string \| number): Value` | Protocol formats to an exact instant |
+| Interchange formatting | `formatInterchange(value: Value, format: InterchangeFormat): string \| number` | Instant or zoned value to a protocol format |
 | Formatting | `format(value: Value, options?: DisplayOptions): string` | Locale-aware human-readable output, never for persistence |
 | Zone conversion | `toZone(instant: Instant, timeZone: string): ZonedDateTime` | Preserves the instant |
 | Local resolution | `resolveLocal(local: LocalDateTime, timeZone: string, disambiguation?: Disambiguation): ZonedDateTime` | Default `reject` on DST gaps/overlaps |

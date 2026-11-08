@@ -15,7 +15,7 @@
     "./server": "./server/index.ts"
   },
   "scripts": {
-    "test": "vitest run tests/core.test.ts",
+    "test": "vitest run tests/core.test.ts tests/interchange.test.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:host": "pnpm --dir examples/minimal-host typecheck"
   },
