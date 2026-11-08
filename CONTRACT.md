@@ -70,6 +70,45 @@ Pattern parsing and formatting share a case-sensitive token grammar: `yyyy` (fou
 
 A valid pattern with non-matching or impossible input fails with `CLOCK_INVALID_INPUT`; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; invalid century/options fail with `CLOCK_INVALID_CONFIG`. These codes are part of the public `ClockErrorCode`. Patterns omitting significant fields or truncating fractional precision are presentation-only and are not guaranteed to round-trip; complete lossless patterns must round-trip through the canonical value. `instant` and `zonedDateTime` are excluded from initial pattern parsing and formatting; use explicit canonical parsing and zone conversion.
 
+### Proposed interchange formats (not implemented)
+
+Protocols exchange instants in fixed machine formats that Clock's canonical strings do not cover. Two operations are proposed, separate from `parse` and `format`, so canonical parsing stays strict:
+
+```ts
+type InterchangeFormat =
+  | 'rfc3339' | 'numericDate' | 'epochMilliseconds' | 'httpDate'
+  | 'rfc5322' | 'iso8601Basic' | 'asn1UtcTime' | 'asn1GeneralizedTime'
+parseInterchange(format: InterchangeFormat, input: string | number): Value   // always kind 'instant'
+formatInterchange(value: Value, format: InterchangeFormat): string | number  // from 'instant' or 'zonedDateTime'
+```
+
+| Format | Standard | Used by | Reads | Writes |
+|---|---|---|---|---|
+| `rfc3339` | RFC 3339 | SAML `IssueInstant` and `NotOnOrAfter`, SCIM `meta`, OAuth/OIDC JSON bodies, most APIs | `Z` or a numeric offset, 0–9 fractional digits | `Z`; a zoned value keeps its offset |
+| `numericDate` | RFC 7519 §2 | JWT and OIDC `exp`, `iat`, `nbf`, `auth_time`; OAuth introspection | Seconds since the epoch, integer or decimal, as a number or string | Integer seconds, truncated |
+| `epochMilliseconds` | ECMAScript time value | JavaScript, WebAuthn and many JSON APIs | Integer milliseconds | Integer milliseconds |
+| `httpDate` | RFC 9110 §5.6.7 | `Expires`, `Last-Modified`, `Retry-After`, cookie `Expires` | IMF-fixdate, and the obsolete RFC 850 and asctime forms that RFC 9110 requires recipients to accept | IMF-fixdate |
+| `rfc5322` | RFC 5322 §3.3 | Email `Date` headers on notifications | Optional day name and seconds; numeric zone, or `UT`, `GMT` and the US zones of §4.3 | `Sun, 08 Nov 2026 17:00:00 +0000` |
+| `iso8601Basic` | ISO 8601 basic format | AWS SigV4 `X-Amz-Date`, iCalendar UTC times | `YYYYMMDDTHHMMSSZ` | The same |
+| `asn1UtcTime` | RFC 5280 §4.1.2.5.1 | X.509 certificate validity before 2050 (mTLS, SAML signing) | `YYMMDDHHMMSSZ`, years `50`–`99` as 19xx and `00`–`49` as 20xx, fixed by the standard | The same, for 1950–2049 only |
+| `asn1GeneralizedTime` | RFC 5280 §4.1.2.5.2 | X.509 validity from 2050 | `YYYYMMDDHHMMSSZ`, no fractional seconds | The same |
+
+Rules: every format resolves to an exact instant, so input without an offset or zone is rejected; names of days, months and zones are English as the standards define them, never localised; output is the strictest form the standard defines; truncation (`numericDate`, the ASN.1 formats and `rfc5322` drop fractional seconds) is documented, not silent. Input that does not match fails with `CLOCK_INVALID_INPUT`, an unknown format with `CLOCK_UNSUPPORTED_OPERATION`, and an instant outside a format's range (such as `asn1UtcTime` after 2049) with `CLOCK_INVALID_INPUT`. Durations such as OAuth `expires_in` remain integer seconds added with `add`.
+
+### Proposed pattern additions (not implemented)
+
+For common human-entered and displayed formats such as `8/11/2026`, `08 Nov 2026` or `5:30 pm`, the pattern grammar gains:
+
+| Token | Meaning |
+|---|---|
+| `d`, `M`, `H` | Day, month or 24-hour hour, one or two digits |
+| `MMM`, `MMMM` | English month name, abbreviated or full |
+| `EEE`, `EEEE` | English weekday name; on parsing it must agree with the date |
+| `hh`, `h` | 12-hour hour, two digits or one-to-two digits; requires `a` |
+| `a` | `am` or `pm`, matched case-insensitively and written lower-case |
+
+Names in patterns are English because patterns are a fixed, locale-independent format; localised names are output only, through `format`. A pattern with both `HH` and `hh` is contradictory and fails with `CLOCK_INVALID_PATTERN`.
+
 ## Host passes
 
 Nothing is required. The default clock uses the system clock.
