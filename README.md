@@ -6,7 +6,7 @@
 
 ## Responsibility
 
-**Owns:** canonical date/time values, strict parsing, explicit-pattern formatting and parsing, localisation, IANA time-zone conversion, DST resolution, calendar arithmetic and an injectable clock.
+**Owns:** canonical date/time values, strict parsing, explicit-pattern formatting and parsing, protocol date formats (RFC 3339, JWT `NumericDate`, epoch milliseconds, HTTP-date, RFC 5322 email dates, ISO 8601 basic, and X.509 `UTCTime` and `GeneralizedTime`), localisation, IANA time-zone conversion, DST resolution, calendar arithmetic and an injectable clock.
 
 **Does not own:**
 
