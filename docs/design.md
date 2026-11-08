@@ -86,6 +86,6 @@ Clock uses the runtime's native `Temporal`, through one internal file, `shared/t
 
 The move was gated on every suite and the browser check passing unchanged, which they did.
 
-## Open questions
+### Time-zone data and precision
 
-Cross-environment time-zone data and precision are tracked in [the plan](../PLAN.md). Until settled, zone rules come from each runtime.
+`tests/runtime-assumptions.test.ts` checks the assumptions the contract documents: IANA time-zone data of release 2024b or later (using rule changes from 2023 to 2024b in Kazakhstan, Paraguay and Greenland, plus London, São Paulo, +14:00, +05:45 and Lord Howe's half-hour daylight saving), zone names kept as given, nanosecond precision through every operation, millisecond system-clock reads and the 0001–9999 year range. The browser check repeats the newest rule changes in every browser.
