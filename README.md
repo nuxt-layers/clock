@@ -27,6 +27,7 @@
 - [Consumer contract](CONTRACT.md): the complete public integration interface, settings, errors and headless surface.
 - [Design](docs/design.md): capability decisions and boundaries.
 - [Minimal host](examples/minimal-host): a working consumer, used in acceptance tests.
+- [Plan](PLAN.md): planned work and its status.
 - [Changelog](CHANGELOG.md): material changes, newest first.
 - [Resources](RESOURCES.md): the governing architecture reviewed.
 

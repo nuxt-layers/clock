@@ -1,16 +1,6 @@
 # Clock — Design
 
-> **In short:** a dependency-free, headless Foundation capability offering consistent, explicit temporal semantics across Nuxt applications, Nitro and browsers.
-
-## Planned pattern and preference integration (not implemented)
-
-- Add explicit `formatPattern(value, pattern)` and `parsePattern(kind, input, pattern, options?)` without changing existing locale formatting or canonical parsing.
-- Accept strict numeric token patterns for `date`, `time` and `localDateTime`; reject unknown/ambiguous tokens, invalid values and missing components. Require a fixed `century` for `yy`; never infer an offset, zone or account preference.
-- Clock remains the sole validator/interpreter of pattern syntax. Lossless patterns round-trip; truncated or omitted fields are presentation-only.
-- Configuration (when installed) owns selectable preferences and scope/precedence, not temporal logic. Host integration reads effective Configuration values and passes a small plain-data preference object into Clock. No Clock runtime dependency on Configuration, IAM or storage.
-- Clock's minimal host mocks resolved preferences (defaults, overrides, invalid configuration and SSR consistency). Independent Configuration acceptance is owned by the Configuration repository; no live cross-layer dependency in Clock tests.
-
-This extension requires separate implementation, test and acceptance PRs; the existing accepted Clock API is unchanged.
+> **In short:** a headless Foundation capability, depending on no other capability, offering consistent, explicit temporal semantics across Nuxt applications, Nitro and browsers.
 
 ## Purpose and classification
 
@@ -27,6 +17,7 @@ This extension requires separate implementation, test and acceptance PRs; the ex
 | Calendar arithmetic and elapsed durations | Notifications or task execution |
 | Injectable clock and Nuxt/Nitro access | NTP synchronisation or authoritative external time |
 | SSR-safe presentation defaults | UI components, pages or styles |
+| Explicit numeric patterns and their validation | Selecting or storing users' preferred patterns |
 
 No dependency on another ecosystem capability is required. The host may supply locale and time-zone preferences sourced from elsewhere but `clock` never queries those capabilities.
 
@@ -39,20 +30,22 @@ No dependency on another ecosystem capability is required. The host may supply l
 5. Format using `Intl`; use Temporal semantics internally, with a compatible implementation for unsupported runtimes. No Temporal implementation types leak into the public contract.
 6. Use server time for trusted decisions. Device time is suitable for display and local interactions, not enforcing security or deadlines.
 7. Avoid hydration differences: SSR uses stable host-specified locale and zone; any browser-resolved preference is introduced deliberately.
+8. Patterns are explicit and strict: numeric tokens of exact width, quoted alphabetic literals, `yy` only with a stated century and never a sliding pivot. Lossless patterns round-trip; patterns that omit or truncate fields are presentation-only.
+9. Preferences belong to the host. Configuration, when installed, owns selectable preferences, their scope and precedence; the host passes effective values into Clock as plain data. Clock remains the only interpreter of pattern syntax and never queries Configuration.
 
 ## Architecture
 
-- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface.
-- **Nuxt integration:** `runtimeConfig.public.clock` defaults, `useClock()` and SSR-stable client configuration; no global mutable per-user settings.
+- **Core:** side-effect-free TypeScript parser, formatter, validator and converter, with a clock-provider interface (`shared/core.ts`), and the pattern grammar (`shared/pattern.ts`). Its only package dependency is `@js-temporal/polyfill`.
+- **Nuxt integration:** `runtimeConfig.public.clock` defaults, `useClock()` and SSR-stable client configuration; no global mutable per-user settings. A plugin validates the defaults when the app initialises, on server and client, so invalid settings fail before rendering or hydration.
 - **Nitro integration:** `@nuxt-layers/clock/server` exposes `useServerClock()` to Nitro request handlers, with a fresh clock instance and optional injected provider.
 - **No presentation:** consumers build their own UI or use a separate UI capability.
-- **No persistence:** no storage register is required unless implementation introduces or causes actual storage.
+- **No persistence:** Clock creates no storage, so no storage register is required.
 
 ## Public contract and composition
 
-`CONTRACT.md` is the sole consumer handover; it must be accurate and independently sufficient once implemented. `capability.json` will declare `@nuxt-layers/clock`, class `foundation`, the provided Clock capability and no required capabilities. Integrate with the existing ADR-0012 `now()` port without changing that ecosystem-wide shape.
+`CONTRACT.md` is the sole consumer handover; it must stay accurate and independently sufficient. `capability.json` declares `@nuxt-layers/clock`, class `foundation`, the provided Clock capability and no required capabilities. Integrate with the existing ADR-0012 `now()` port without changing that ecosystem-wide shape.
 
-The planned Nuxt host composition must fit ADR-0012's 50-line budget, including configuration. The minimal host must exercise client and server use.
+The Nuxt host composition must fit ADR-0012's 50-line budget, including configuration; CI enforces it. The minimal host exercises client and server use, and mocks resolved preferences instead of installing Configuration.
 
 ## Acceptance criteria
 
@@ -64,6 +57,8 @@ The planned Nuxt host composition must fit ADR-0012's 50-line budget, including 
 - Pure core importable without Nuxt; no runtime database, network or storage requirement.
 - Server-side and browser-side consumer tests using only `CONTRACT.md`.
 - No public export outside documented entry points; code and contract reconciled before acceptance.
+- Lossless patterns round-trip; malformed or incompatible patterns fail with `CLOCK_INVALID_PATTERN`; `yy` without a valid century fails with `CLOCK_INVALID_CONFIG`.
+- Mocked host preferences (defaults, overrides and invalid values) render identically in SSR and after hydration.
 
 ## Interface decisions
 
@@ -72,10 +67,6 @@ The planned Nuxt host composition must fit ADR-0012's 50-line budget, including 
 - Public entry points are `/core` for portable utilities, `/server` for Nitro and `useClock()` for Nuxt; the root is the Nuxt layer entry.
 - Public failures expose a stable `ClockError` shape. `isValid` returns a boolean instead of throwing for invalid user input.
 
-## Implementation checks still required
+## Open questions
 
-1. Validate the published source export map, Nuxt composition and request-scoped clock use in the minimal host.
-2. Verify the runtime compatibility matrix for the initial `@js-temporal/polyfill` implementation and any native Temporal transition.
-3. Validate time-zone data assumptions and cross-environment precision in contract tests.
-
-These are implementation gates, not reasons to expand the architecture-rules repository.
+Runtime compatibility across environments and the move from `@js-temporal/polyfill` to native Temporal, and cross-environment time-zone data and precision, are tracked in [the plan](../PLAN.md). Until settled, Clock supports the Node.js version in `package.json` `engines`, and zone rules come from the runtime.

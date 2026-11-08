@@ -4,6 +4,8 @@
 
 ## 2026-11-08
 
+- Design brought up to date with the accepted pattern and preference work; open runtime and time-zone questions moved to a restored `PLAN.md`.
+- Contract: proposed interchange formats for protocol dates (RFC 3339, JWT NumericDate, epoch milliseconds, HTTP-date, RFC 5322, ISO 8601 basic, X.509 UTCTime and GeneralizedTime) and proposed pattern additions for common human formats.
 - README: responsibility and exclusions, provided and required capabilities, development commands, security and privacy, and links to every repository document.
 - Resources: architecture rules re-pinned to the revision with Layer Standard §5.
 - All planned work is complete, so `PLAN.md` is removed.
