@@ -2,6 +2,12 @@
 
 > **In short:** material design and contract changes, newest first.
 
+## 2026-11-09
+
+- `ClockError` and `ClockErrorCode` are exported from `@nuxt-layers/clock/server` as well as `/core`, as the same class; the contract lists exactly what each entry point exports (nuxt-layers/clock#25).
+- Added `isValidTimeZone` and `timeZones` on `/core`, `/server` and every clock instance. Zone names must now match letter case exactly (`europe/london` is rejected with `CLOCK_INVALID_TIME_ZONE`, where it was previously accepted); `UTC`, `Etc/*` and links remain valid. `timeZones()` comes from a fixed list of IANA primary zones (tzdata 2026e) rather than the engine's, because V8 and Firefox/WebKit spell renamed zones differently; the browser check compares the list with the server's (nuxt-layers/clock#27).
+- Contract: recommended deadline arithmetic across daylight saving (calendar units on a zoned value in a caller-stated zone with `compatible` disambiguation), with tests across the Europe/London changes (nuxt-layers/clock#26).
+
 ## 2026-11-08
 
 - Audit fixes: architecture rules re-pinned to the revision with ADR-0012 §2a and the ADR-0013 TypeScript baseline; supported Node.js stated as 26.13 or later, matching `engines`; minimal host README describes the browser check and drops a stale status line; `pnpm test` runs every file in `tests/`.

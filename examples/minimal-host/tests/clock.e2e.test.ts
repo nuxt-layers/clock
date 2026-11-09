@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { $fetch, setup } from '@nuxt/test-utils/e2e'
-import { createClock } from '@nuxt-layers/clock/core'
+import { ClockError, createClock } from '@nuxt-layers/clock/core'
+import { ClockError as ServerClockError, createClock as createServerClock } from '@nuxt-layers/clock/server'
 import { mockConfigurationAnswer } from '../shared/mock-configuration'
 
 describe('Clock minimal host', async () => {
@@ -37,5 +38,14 @@ describe('Clock minimal host', async () => {
       .toThrowError('CLOCK_INVALID_PATTERN')
     expect(() => createClock(mockConfigurationAnswer({ timeZone: 'Invalid/Zone' })))
       .toThrowError('CLOCK_INVALID_TIME_ZONE')
+  })
+
+  it('catches a faulty now() provider through the public ClockError import', () => {
+    const clock = createServerClock({}, { now: () => 'not an instant' })
+    let caught: unknown
+    try { clock.now() } catch (error) { caught = error }
+    expect(caught).toBeInstanceOf(ClockError)
+    expect(caught).toBeInstanceOf(ServerClockError)
+    if (caught instanceof ServerClockError) expect(caught.code).toBe('CLOCK_INVALID_INPUT')
   })
 })
