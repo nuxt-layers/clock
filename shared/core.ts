@@ -154,6 +154,29 @@ export function add(value: Value, units: DateUnits | TimeUnits, options: Arithme
     return fail('CLOCK_UNSUPPORTED_OPERATION')
   }
 }
+export type ElapsedUnit = 'hours' | 'minutes' | 'seconds' | 'milliseconds'
+const nanosPer: Record<ElapsedUnit, bigint> = { hours: 3_600_000_000_000n, minutes: 60_000_000_000n, seconds: 1_000_000_000n, milliseconds: 1_000_000n }
+function epochNanos(v: Value): bigint {
+  checked(v)
+  try {
+    if (v.kind === 'instant') return Temporal.Instant.from(v.value).epochNanoseconds
+    if (v.kind === 'zonedDateTime') return (object(v.kind, v.value) as Temporal.ZonedDateTime).epochNanoseconds
+  } catch { return fail('CLOCK_INVALID_INPUT') }
+  return fail('CLOCK_INCOMPATIBLE_TYPES')
+}
+/** Elapsed time from `a` to `b` in whole units, truncated towards zero; negative when `b` is before `a`. */
+export function difference(a: Value, b: Value, unit: ElapsedUnit): number {
+  if (!Object.hasOwn(nanosPer, unit)) return fail('CLOCK_UNSUPPORTED_OPERATION')
+  if (a?.kind !== b?.kind) { checked(a); checked(b); return fail('CLOCK_INCOMPATIBLE_TYPES') }
+  return Number((epochNanos(b) - epochNanos(a)) / nanosPer[unit])
+}
+/** The instant halfway between two instants, to the nanosecond; an odd nanosecond rounds to the earlier instant. */
+export function midpoint(a: Value, b: Value): Value {
+  if (a?.kind !== 'instant' || b?.kind !== 'instant') { checked(a); checked(b); return fail('CLOCK_INCOMPATIBLE_TYPES') }
+  const sum = epochNanos(a) + epochNanos(b)
+  const half = sum / 2n - (sum < 0n && sum % 2n !== 0n ? 1n : 0n)
+  return parse('instant', Temporal.Instant.fromEpochNanoseconds(half).toString())
+}
 export function compare(a: Value, b: Value): -1 | 0 | 1 {
   checked(a); checked(b)
   if (a.kind !== b.kind) return fail('CLOCK_INCOMPATIBLE_TYPES')
@@ -223,7 +246,7 @@ export function createClock(settings: ClockSettings = {}, provider: ClockPort = 
         return fail('CLOCK_INVALID_INPUT')
       }
     },
-    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern, formatInterchange, isValidTimeZone, timeZones,
+    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern, formatInterchange, isValidTimeZone, timeZones, difference, midpoint,
     parseInterchange: (format: InterchangeFormat, input: string | number): Value => parseInterchangeAt(format, input, Number(now().slice(0, 4))),
     format: (v: Value, opts: DisplayOptions = {}) => format(v, { locale, hourCycle, ...opts, timeZone: opts.timeZone ?? timeZone }),
   })

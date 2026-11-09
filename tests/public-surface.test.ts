@@ -104,3 +104,55 @@ describe('recommended deadline arithmetic across Europe/London DST', () => {
     expect(endOfDay).toBe('2026-10-28T00:00:00Z') // deadline is before midnight starting 28 October
   })
 })
+
+describe('elapsed difference and midpoint', () => {
+  const i = (value: string): core.Value => ({ kind: 'instant', value })
+  const z = (value: string): core.Value => ({ kind: 'zonedDateTime', value })
+
+  it('returns signed whole units, truncated towards zero', () => {
+    const a = i('2026-11-09T10:00:00Z'), b = i('2026-11-09T11:30:59.999Z')
+    expect(core.difference(a, b, 'hours')).toBe(1)
+    expect(core.difference(a, b, 'minutes')).toBe(90)
+    expect(core.difference(a, b, 'seconds')).toBe(5459)
+    expect(core.difference(a, b, 'milliseconds')).toBe(5_459_999)
+    expect(core.difference(b, a, 'hours')).toBe(-1)
+    expect(core.difference(b, a, 'seconds')).toBe(-5459)
+    expect(core.difference(a, a, 'seconds')).toBe(0)
+  })
+
+  it('counts elapsed time across daylight saving, and compares zoned values by instant', () => {
+    expect(core.difference(z('2026-10-24T12:00:00+01:00[Europe/London]'), z('2026-10-25T12:00:00+00:00[Europe/London]'), 'hours')).toBe(25)
+    expect(core.difference(i('2026-03-28T12:00:00Z'), i('2026-03-29T11:00:00Z'), 'hours')).toBe(23)
+  })
+
+  it('spans the whole supported range in milliseconds', () => {
+    expect(core.difference(i('0001-01-01T00:00:00Z'), i('9999-12-31T23:59:59.999Z'), 'milliseconds')).toBe(315537897599999)
+  })
+
+  it('rejects other kinds, mixed kinds and unknown units', () => {
+    expect(() => core.difference({ kind: 'date', value: '2026-01-01' }, { kind: 'date', value: '2026-01-02' }, 'hours')).toThrowError('CLOCK_INCOMPATIBLE_TYPES')
+    expect(() => core.difference(i('2026-01-01T00:00:00Z'), z('2026-01-01T00:00:00+00:00[UTC]'), 'hours')).toThrowError('CLOCK_INCOMPATIBLE_TYPES')
+    expect(() => core.difference(i('2026-01-01T00:00:00Z'), i('2026-01-02T00:00:00Z'), 'days' as core.ElapsedUnit)).toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+    expect(() => core.difference(i('2026-01-01T00:00:00Z'), i('2026-01-02T00:00:00Z'), 'nanoseconds' as core.ElapsedUnit)).toThrowError('CLOCK_UNSUPPORTED_OPERATION')
+    expect(() => core.difference(i('nope'), i('2026-01-02T00:00:00Z'), 'hours')).toThrowError(core.ClockError)
+  })
+
+  it('finds the midpoint at full precision, in either order', () => {
+    // Profile's case: opened 10:00 BST on 20 October, due one calendar month on (10:00 GMT on 20 November)
+    const opened = i('2026-10-20T09:00:00Z'), due = i('2026-11-20T10:00:00Z')
+    expect(core.midpoint(opened, due)).toEqual(i('2026-11-04T21:30:00Z'))
+    expect(core.midpoint(due, opened)).toEqual(i('2026-11-04T21:30:00Z'))
+    expect(core.midpoint(i('2026-01-01T00:00:00Z'), i('2026-01-01T00:00:00.000000003Z'))).toEqual(i('2026-01-01T00:00:00.000000001Z'))
+    expect(core.midpoint(i('1969-12-31T23:59:59.999999999Z'), i('1970-01-01T00:00:00Z'))).toEqual(i('1969-12-31T23:59:59.999999999Z'))
+    expect(core.midpoint(i('0001-01-01T00:00:00Z'), i('0001-01-01T00:00:00Z'))).toEqual(i('0001-01-01T00:00:00Z'))
+  })
+
+  it('midpoint accepts instants only', () => {
+    expect(() => core.midpoint(z('2026-01-01T00:00:00+00:00[UTC]'), z('2026-01-02T00:00:00+00:00[UTC]'))).toThrowError('CLOCK_INCOMPATIBLE_TYPES')
+  })
+
+  it('is on clock instances and /server clocks', () => {
+    expect(core.createClock().difference).toBe(core.difference)
+    expect(server.createClock().midpoint).toBe(core.midpoint)
+  })
+})
