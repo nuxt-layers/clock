@@ -34,6 +34,8 @@ const probe = JSON.stringify({
   numericDate: clock.formatInterchange(instant, 'numericDate'),
   rfc850: clock.parseInterchange('httpDate', 'Sunday, 06-Nov-94 08:49:37 GMT').value,
   utcTime: clock.parseInterchange('asn1UtcTime', '491231235959Z').value,
+  timeZones: clock.timeZones().join(' '),
+  zoneChecks: ['Europe/Kiev', 'Etc/UTC', 'europe/london', '+01:00'].map(clock.isValidTimeZone),
 })
 </script>
 

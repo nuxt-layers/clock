@@ -132,7 +132,21 @@ type ClockPort = { now(): string } // this layer returns UTC ISO 8601, e.g. 2026
 
 ## Client and server functions
 
-**Public source exports:** `@nuxt-layers/clock/core` exposes the pure TypeScript functions; `@nuxt-layers/clock/server` exposes `useServerClock(overrides?, provider?)` and `createClock` to Nitro handlers; the Nuxt layer auto-imports `useClock(overrides?, provider?)` for Vue/SSR. `@nuxt-layers/clock` is solely the Nuxt layer configuration entry. Both helpers expose the same `createClock` operation set and read `runtimeConfig.public.clock`, with optional per-call overrides. No public import exposes private implementation paths. The `/server` entry is server-only: call it within a Nitro handler, not during module initialisation.
+**Public source exports:** each entry point exports exactly the following.
+
+| Entry point | Values | Types |
+|---|---|---|
+| `@nuxt-layers/clock/core` | `createClock`, `ClockError`, `isValidTimeZone`, `timeZones`, every operation in the table below as a pure function, and `now`, `today`, `parseInterchange` bound to the system clock | Every type listed below, including `ClockErrorCode` |
+| `@nuxt-layers/clock/server` | `useServerClock(overrides?, provider?)`, `createClock`, `ClockError`, `isValidTimeZone`, `timeZones` | `ClockSettings`, `ClockPort`, `ClockErrorCode` |
+| Nuxt auto-import | `useClock(overrides?, provider?)` for Vue/SSR | — |
+
+`ClockError` is the same class from both entry points, so `error instanceof ClockError` holds whichever entry point created the clock (as long as the host resolves one copy of the package). Import it rather than matching on `code` prefixes:
+
+```ts
+import { ClockError, useServerClock } from '@nuxt-layers/clock/server'
+try { useServerClock().toZone(instant, zone) }
+catch (error) { if (error instanceof ClockError && error.code === 'CLOCK_INVALID_TIME_ZONE') { /* ... */ } else throw error }
+``` `@nuxt-layers/clock` is solely the Nuxt layer configuration entry. Both helpers expose the same `createClock` operation set and read `runtimeConfig.public.clock`, with optional per-call overrides. No public import exposes private implementation paths. The `/server` entry is server-only: call it within a Nitro handler, not during module initialisation.
 
 Client/SSR example:
 
@@ -208,6 +222,8 @@ Public operations, exposed through the same semantic service on client and serve
 | Arithmetic | `add(value: Value, amount: DateUnits \| TimeUnits, options?: ArithmeticOptions): Value` | Kind-specific calendar or elapsed-time arithmetic, described below |
 | Comparison | `compare(a: Value, b: Value): -1 \| 0 \| 1` | Requires compatible kinds; no implicit time-zone coercion |
 | Validation | `isValid(kind: TemporalKind, input: string): boolean` | Strict validation; no coercion |
+| Zone validation | `isValidTimeZone(timeZone: string): boolean` | Whether every zone-taking operation accepts the name; never throws |
+| Zone list | `timeZones(): readonly string[]` | Sorted primary IANA zone names plus `UTC`, for pickers; never throws |
 | Serialisation | `serialise(value: Value): string` | Returns validated canonical value without localisation |
 
 Functions are pure except `now`, `today` and `parseInterchange`, which read the clock (`parseInterchange` only for RFC 850 two-digit years). `/core` also exports `now`, `today` and `parseInterchange` bound to the system clock; use a clock instance to inject time. A date-only value is never silently interpreted as midnight UTC. Arithmetic crossing DST uses calendar semantics for zoned dates and elapsed-time semantics for instants; conversion between kinds must be explicit. Canonical strings accept 0–9 fractional-second digits; parsing preserves supplied precision, while `now()` emits milliseconds by default. Arithmetic results use at most nanosecond precision and must not silently round supplied values. Formatting is presentation-only and may reduce displayed precision.
@@ -222,12 +238,34 @@ Functions are pure except `now`, `today` and `parseInterchange`, which read the 
 - Calendar month/year overflow clamps to the last valid day (31 January + one month → 28 or 29 February). Empty, fractional or mixed-category amounts fail with `CLOCK_UNSUPPORTED_OPERATION`.
 - Subtraction uses signed integer amounts. Comparisons require the same kind, except two zoned values may compare by their instants.
 
+### Deadlines across daylight saving
+
+A deadline expressed in days, weeks or months is a calendar deadline: add calendar units to a `zonedDateTime` in a zone the caller states, with `disambiguation: 'compatible'`, then convert back to an instant for storage and comparison.
+
+```ts
+const due = clock.toInstant(clock.add(
+  { kind: 'zonedDateTime', value: clock.toZone(start, 'Europe/London') },
+  { days: 7 },                           // or { months: 1 }
+  { disambiguation: 'compatible' },
+).value)
+// 10:00 BST on 20 October + 7 days → 10:00 GMT on 27 October (2026-10-27T10:00:00Z), not 09:00
+```
+
+- **Calendar days, not 24-hour blocks.** `instant` plus `hours: N * 24` is elapsed time; use it only when the rule really is a number of hours.
+- **The caller states the zone.** It is the jurisdiction the rule is read in (the controller's or the person's), resolved by the host; do not rely on the configured default `timeZone`, which is a presentation setting. `UTC` is acceptable only where the rule is defined in UTC.
+- **`compatible`, not the default `reject`.** A deadline must not fail because it lands in a gap or overlap: `compatible` moves a nonexistent local time forward by the gap and picks the earlier of two repeated times.
+- **End of a local day:** take `today(zone)` (or the start's local date), `add` calendar days to the `date`, and `resolveLocal` midnight of the following date with `compatible`; the deadline is strictly before that instant.
+- **Display:** a stored deadline is an instant. Show it in the zone the rule was computed in, and name that zone when another reader could see a different date (see *Headless surface*).
+
 ### Parsing and zones
 
 - ISO calendar dates use the proleptic Gregorian calendar, with four-digit years from `0001` to `9999`. Leap seconds (`:60`) are rejected.
 - An instant always has an explicit `Z`; a zoned value must contain both a numeric offset and bracketed IANA identifier, and its offset must be valid for that zone at the represented instant.
 - `compatible` follows Temporal-style resolution: choose the earlier offset for an overlap, or advance by the size of the gap for a nonexistent local time. `earlier`/`later` explicitly choose the corresponding possible instant or gap-side adjustment.
 - Zone rules come from the runtime's IANA time-zone data, which must be release 2024b or later. Every supported runtime meets this; `tests/runtime-assumptions.test.ts` fails on a runtime that does not, and the browser check requires each browser to agree with the server. A zone name is kept exactly as given, so a link such as `Europe/Kiev` is not rewritten to `Europe/Kyiv`. Rules published after a runtime's data release apply only once that runtime is updated.
+- A zone name is valid when the runtime's IANA data knows it **and** it is spelt exactly as given, letter case included: `Europe/London` is valid, `europe/london` is not. `UTC`, `Etc/*` zones such as `Etc/GMT+5`, and links such as `Europe/Kiev` are valid. Offsets such as `+01:00`, `Z`, the empty string and non-strings are never zones. `isValidTimeZone` answers by exactly this rule, and every operation that takes a zone fails with `CLOCK_INVALID_TIME_ZONE` on a name it rejects.
+- `timeZones()` lists the runtime's primary identifiers, sorted, plus `UTC`, without links (so `Etc/UTC` is valid but not listed). Which spelling of a renamed zone is primary (`Europe/Kiev` or `Europe/Kyiv`) is the engine's choice; the browser check requires every supported browser to return exactly the server's list. The array is frozen and the same on every call.
+- Validating untrusted input: call `isValidTimeZone`; do not keep your own list or call `Intl` yourself. A schema library that cannot import Clock should check only the shape (a non-empty string) and leave the zone check to `isValidTimeZone` on the server and in the browser.
 - Precision: values keep up to nine fractional-second digits through parsing, zone conversion, arithmetic, DST resolution and `numericDate`; two values one nanosecond apart compare as different. The default system clock reads milliseconds.
 
 

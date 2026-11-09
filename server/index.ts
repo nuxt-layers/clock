@@ -1,5 +1,5 @@
 import { useRuntimeConfig } from 'nuxt/server'
-import { createClock, type ClockPort, type ClockSettings } from '../shared/core'
+import { ClockError, createClock, isValidTimeZone, timeZones, type ClockErrorCode, type ClockPort, type ClockSettings } from '../shared/core'
 
 /**
  * Call inside a Nitro request handler. Never caches a caller's clock,
@@ -11,5 +11,5 @@ export function useServerClock(overrides: ClockSettings = {}, provider?: ClockPo
   return createClock({ ...defaults, ...overrides }, provider)
 }
 
-export { createClock }
-export type { ClockPort, ClockSettings }
+export { ClockError, createClock, isValidTimeZone, timeZones }
+export type { ClockErrorCode, ClockPort, ClockSettings }

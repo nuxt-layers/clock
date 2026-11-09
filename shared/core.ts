@@ -38,12 +38,28 @@ const patterns: Record<TemporalKind, RegExp> = {
   instant: new RegExp('^' + d + 'T' + t + 'Z$'),
   zonedDateTime: new RegExp('^' + d + 'T' + t + '[+-](?:[01][0-9]|2[0-3]):[0-5][0-9]\\[[A-Za-z0-9_+./-]+\\]$'),
 }
+/**
+ * True only for an IANA zone name the runtime knows, spelt exactly as the runtime spells it.
+ * Links (`Europe/Kiev`), `UTC` and `Etc/*` are accepted; offsets, empty strings, other
+ * letter cases and non-strings are not. Never throws.
+ */
+export function isValidTimeZone(timeZone: string): boolean {
+  if (typeof timeZone !== 'string' || !timeZone || timeZone.length > 64 || !/^[A-Za-z]/.test(timeZone)) return false
+  try { return new Temporal.ZonedDateTime(0n, timeZone).timeZoneId === timeZone }
+  catch { return false }
+}
+let zoneList: readonly string[] | undefined
+/** Sorted primary IANA zone names from the runtime's data, plus `UTC`; links are not listed. Never throws. */
+export function timeZones(): readonly string[] {
+  if (!zoneList) {
+    let names: string[] = []
+    try { names = Intl.supportedValuesOf('timeZone').filter(isValidTimeZone) } catch {}
+    zoneList = Object.freeze([...new Set([...names, 'UTC'])].sort())
+  }
+  return zoneList
+}
 function zone(name: string): string {
-  try {
-    if (!name || /^[+-]\d/.test(name)) return fail('CLOCK_INVALID_TIME_ZONE')
-    new Intl.DateTimeFormat('en-GB', { timeZone: name })
-    return name
-  } catch { return fail('CLOCK_INVALID_TIME_ZONE') }
+  return isValidTimeZone(name) ? name : fail('CLOCK_INVALID_TIME_ZONE')
 }
 function object(kind: TemporalKind, input: string) {
   switch (kind) {
@@ -208,7 +224,7 @@ export function createClock(settings: ClockSettings = {}, provider: ClockPort = 
         return fail('CLOCK_INVALID_INPUT')
       }
     },
-    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern, formatInterchange,
+    parse, isValid, serialise, toZone, toInstant, resolveLocal, add, compare, formatPattern, parsePattern, formatInterchange, isValidTimeZone, timeZones,
     parseInterchange: (format: InterchangeFormat, input: string | number): Value => parseInterchangeAt(format, input, Number(now().slice(0, 4))),
     format: (v: Value, opts: DisplayOptions = {}) => format(v, { locale, hourCycle, ...opts, timeZone: opts.timeZone ?? timeZone }),
   })
