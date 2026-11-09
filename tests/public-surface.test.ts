@@ -39,6 +39,9 @@ describe('time-zone validation and listing', () => {
     expect(zones.length).toBeGreaterThan(300)
     expect(zones).toContain('UTC')
     expect(zones).toContain('Europe/London')
+    expect(zones).toContain('Europe/Kyiv') // IANA's spelling, whatever the engine lists
+    expect(zones).toContain('Africa/Asmara')
+    expect(zones).not.toContain('Europe/Kiev')
     expect(zones).not.toContain('Etc/UTC') // a link, so not listed, although isValidTimeZone accepts it
     expect([...zones]).toEqual([...zones].sort())
     expect(new Set(zones).size).toBe(zones.length)

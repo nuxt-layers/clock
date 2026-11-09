@@ -5,7 +5,7 @@
 ## 2026-11-09
 
 - `ClockError` and `ClockErrorCode` are exported from `@nuxt-layers/clock/server` as well as `/core`, as the same class; the contract lists exactly what each entry point exports (nuxt-layers/clock#25).
-- Added `isValidTimeZone` and `timeZones` on `/core`, `/server` and every clock instance. Zone names must now match letter case exactly (`europe/london` is rejected with `CLOCK_INVALID_TIME_ZONE`, where it was previously accepted); `UTC`, `Etc/*` and links remain valid. The browser check compares the zone list with the server's (nuxt-layers/clock#27).
+- Added `isValidTimeZone` and `timeZones` on `/core`, `/server` and every clock instance. Zone names must now match letter case exactly (`europe/london` is rejected with `CLOCK_INVALID_TIME_ZONE`, where it was previously accepted); `UTC`, `Etc/*` and links remain valid. `timeZones()` comes from a fixed list of IANA primary zones (tzdata 2026e) rather than the engine's, because V8 and Firefox/WebKit spell renamed zones differently; the browser check compares the list with the server's (nuxt-layers/clock#27).
 - Contract: recommended deadline arithmetic across daylight saving (calendar units on a zoned value in a caller-stated zone with `compatible` disambiguation), with tests across the Europe/London changes (nuxt-layers/clock#26).
 
 ## 2026-11-08

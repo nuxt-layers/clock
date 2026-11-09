@@ -1,4 +1,5 @@
 import { formatPattern, parsePattern } from './pattern'
+import { ianaZones } from './time-zones'
 export { formatPattern, parsePattern } from './pattern'
 export type { PatternKind, PatternOptions } from './pattern'
 import { formatInterchange, parseInterchangeAt, type InterchangeFormat } from './interchange'
@@ -49,14 +50,12 @@ export function isValidTimeZone(timeZone: string): boolean {
   catch { return false }
 }
 let zoneList: readonly string[] | undefined
-/** Sorted primary IANA zone names from the runtime's data, plus `UTC`; links are not listed. Never throws. */
+/**
+ * Sorted IANA primary Area/Location zones plus `UTC`, from Clock's fixed list (shared/time-zones.ts)
+ * rather than the engine's, so every runtime spells them the same. Links are not listed. Never throws.
+ */
 export function timeZones(): readonly string[] {
-  if (!zoneList) {
-    let names: string[] = []
-    try { names = Intl.supportedValuesOf('timeZone').filter(isValidTimeZone) } catch {}
-    zoneList = Object.freeze([...new Set([...names, 'UTC'])].sort())
-  }
-  return zoneList
+  return zoneList ??= Object.freeze(ianaZones.filter(isValidTimeZone))
 }
 function zone(name: string): string {
   return isValidTimeZone(name) ? name : fail('CLOCK_INVALID_TIME_ZONE')
