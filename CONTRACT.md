@@ -188,6 +188,7 @@ type TimeUnits = { hours?: number; minutes?: number; seconds?: number }
 type ArithmeticOptions = { disambiguation?: Disambiguation }
 type ClockSettings = { locale?: string; timeZone?: string; hourCycle?: 'h11' | 'h12' | 'h23' | 'h24' }
 type ClockPort = { now(): string }
+type ElapsedUnit = 'hours' | 'minutes' | 'seconds' | 'milliseconds'
 type PatternKind = 'date' | 'time' | 'localDateTime'
 type PatternOptions = { century?: number }
 type InterchangeFormat =
@@ -221,6 +222,8 @@ Public operations, exposed through the same semantic service on client and serve
 | Conversion to instant | `toInstant(zoned: ZonedDateTime): Instant` | Preserves the instant |
 | Arithmetic | `add(value: Value, amount: DateUnits \| TimeUnits, options?: ArithmeticOptions): Value` | Kind-specific calendar or elapsed-time arithmetic, described below |
 | Comparison | `compare(a: Value, b: Value): -1 \| 0 \| 1` | Requires compatible kinds; no implicit time-zone coercion |
+| Elapsed difference | `difference(a: Value, b: Value, unit: ElapsedUnit): number` | Elapsed time from `a` to `b` in whole `hours`, `minutes`, `seconds` or `milliseconds`, truncated towards zero; negative when `b` is earlier |
+| Midpoint | `midpoint(a: Value, b: Value): Value` | The instant halfway between two instants, to the nanosecond |
 | Validation | `isValid(kind: TemporalKind, input: string): boolean` | Strict validation; no coercion |
 | Zone validation | `isValidTimeZone(timeZone: string): boolean` | Whether every zone-taking operation accepts the name; never throws |
 | Zone list | `timeZones(): readonly string[]` | Sorted primary IANA zone names plus `UTC`, for pickers; never throws |
@@ -237,6 +240,12 @@ Functions are pure except `now`, `today` and `parseInterchange`, which read the 
 - `zonedDateTime`: calendar units advance local calendar fields preserving the named zone; time units advance the exact instant. For calendar operations that land in a DST gap or overlap, `options.disambiguation` defaults to `reject`.
 - Calendar month/year overflow clamps to the last valid day (31 January + one month → 28 or 29 February). Empty, fractional or mixed-category amounts fail with `CLOCK_UNSUPPORTED_OPERATION`.
 - Subtraction uses signed integer amounts. Comparisons require the same kind, except two zoned values may compare by their instants.
+
+### Elapsed differences
+
+- `difference` and `midpoint` measure exact elapsed time, never calendar time: a day across a daylight-saving change is 23 or 25 hours. A difference in calendar days or months is not provided; count calendar units with `add` and `compare` in a stated zone.
+- `difference` takes two `instant` values or two `zonedDateTime` values (measured between their instants, as `compare` does). Other kinds, or mixed kinds, fail with `CLOCK_INCOMPATIBLE_TYPES`; an unknown unit fails with `CLOCK_UNSUPPORTED_OPERATION`. The result is an integer, truncated towards zero like `numericDate`, and is exact and safe across the whole year range in every unit. Nanoseconds are not a unit, because they exceed a safe integer after about 104 days.
+- `midpoint` takes two `instant` values in either order and returns an `instant` at full nanosecond precision. When the two instants are an odd number of nanoseconds apart, it returns the earlier of the two middle nanoseconds. Other kinds fail with `CLOCK_INCOMPATIBLE_TYPES`.
 
 ### Deadlines across daylight saving
 
